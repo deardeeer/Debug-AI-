@@ -1,0 +1,1989 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Debug & AI 協作速通筆記</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,700&family=Noto+Serif+TC:wght@300;400;500;700;900&family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper:        #F4EFE4;
+  --paper-dark:   #EDE6D6;
+  --paper-darker: #E5DCC6;
+  --ink:          #1F1B16;
+  --ink-soft:     #4A3F33;
+  --ink-muted:    #7A6A5A;
+  --border:       #D9CFB8;
+  --rust:         #A33B1F;
+  --rust-soft:    #C85B3D;
+  --teal:         #1F4A47;
+  --teal-soft:    #3B6E6A;
+  --olive:        #6B7039;
+  --amber:        #B8861A;
+  --success:      #4A6B2A;
+  --danger:       #A33B1F;
+
+  --serif: 'Fraunces', 'Noto Serif TC', Georgia, 'Times New Roman', serif;
+  --sans:  'Noto Sans TC', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --mono:  'JetBrains Mono', 'Courier New', monospace;
+
+  --shadow-sm: 0 1px 2px rgba(31, 27, 22, 0.04);
+  --shadow-md: 0 4px 12px rgba(31, 27, 22, 0.08);
+  --shadow-lg: 0 12px 32px rgba(31, 27, 22, 0.12);
+
+  --sidebar-width: 290px;
+  --max-reading: 720px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--serif);
+  font-feature-settings: "kern" 1, "liga" 1;
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.75;
+  font-size: 17px;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Subtle paper texture */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(122, 106, 90, 0.03) 1px, transparent 1px),
+    radial-gradient(circle at 70% 60%, rgba(122, 106, 90, 0.04) 1px, transparent 1px),
+    radial-gradient(circle at 40% 80%, rgba(122, 106, 90, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px, 80px 80px, 100px 100px;
+  z-index: 1;
+}
+
+/* ===== Progress bar at top ===== */
+.progress-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--paper-darker);
+  z-index: 100;
+}
+.progress-bar__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--rust), var(--amber));
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+/* ===== Mobile top bar ===== */
+.topbar {
+  display: none;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--paper);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 18px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 3px;
+}
+.topbar__title {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--ink);
+}
+.topbar__menu {
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 18px;
+}
+
+/* ===== Layout ===== */
+.layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  min-height: 100vh;
+  position: relative;
+  z-index: 2;
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 36px 26px 36px 32px;
+  border-right: 1px solid var(--border);
+  background: var(--paper);
+}
+
+.sidebar__brand {
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar__brand-eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  color: var(--rust);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.sidebar__brand-title {
+  font-family: var(--serif);
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--ink);
+}
+.sidebar__brand-title em {
+  font-style: italic;
+  color: var(--rust);
+  font-weight: 500;
+}
+
+.progress-pill {
+  background: var(--paper-dark);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 24px;
+}
+.progress-pill__label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.progress-pill__count {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+}
+.progress-pill__count em {
+  font-style: italic;
+  color: var(--rust);
+}
+.progress-pill__total {
+  font-size: 14px;
+  color: var(--ink-muted);
+  font-weight: 400;
+}
+.progress-pill__track {
+  margin-top: 10px;
+  height: 4px;
+  background: var(--paper-darker);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-pill__fill {
+  height: 100%;
+  background: var(--rust);
+  width: 0%;
+  transition: width 0.4s ease;
+  border-radius: 2px;
+}
+
+.toc {
+  list-style: none;
+}
+.toc__group {
+  margin-bottom: 18px;
+}
+.toc__group-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding-left: 4px;
+}
+.toc__item {
+  list-style: none;
+  margin: 2px 0;
+}
+.toc__link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--ink-soft);
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 400;
+  transition: all 0.2s ease;
+  border-left: 2px solid transparent;
+}
+.toc__link:hover {
+  background: var(--paper-dark);
+  color: var(--ink);
+}
+.toc__link.active {
+  background: var(--paper-dark);
+  color: var(--rust);
+  font-weight: 500;
+  border-left-color: var(--rust);
+}
+.toc__check {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: var(--paper);
+  background: transparent;
+  transition: all 0.2s ease;
+}
+.toc__link.completed .toc__check {
+  background: var(--success);
+  border-color: var(--success);
+}
+.toc__link.completed .toc__check::after {
+  content: "✓";
+  color: var(--paper);
+  font-weight: 700;
+}
+.toc__link.completed {
+  color: var(--ink-muted);
+}
+
+.sidebar__footer {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.btn-reset {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--ink-muted);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-family: var(--sans);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+.btn-reset:hover {
+  border-color: var(--rust);
+  color: var(--rust);
+}
+
+/* ===== Main content ===== */
+.main {
+  padding: 60px 64px 100px;
+  min-width: 0;
+}
+.main__inner {
+  max-width: var(--max-reading);
+  margin: 0 auto;
+}
+
+/* ===== Hero ===== */
+.hero {
+  padding-bottom: 60px;
+  margin-bottom: 60px;
+  border-bottom: 1px solid var(--border);
+}
+.hero__eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: var(--rust);
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hero__eyebrow::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.hero__title {
+  font-family: var(--serif);
+  font-size: clamp(40px, 7vw, 72px);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-bottom: 20px;
+  color: var(--ink);
+}
+.hero__title em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--rust);
+}
+.hero__subtitle {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin-bottom: 32px;
+  font-weight: 400;
+}
+.hero__meta {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+.hero__meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.hero__meta-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+.hero__meta-value {
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* ===== Section ===== */
+.section {
+  margin-bottom: 80px;
+  position: relative;
+}
+.section__header {
+  margin-bottom: 32px;
+  position: relative;
+}
+.section__number {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  color: var(--rust);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.section__number::before {
+  content: "";
+  width: 30px; height: 1px;
+  background: var(--rust);
+}
+.section__title {
+  font-family: var(--serif);
+  font-size: clamp(30px, 4.5vw, 44px);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.section__title em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--rust);
+}
+.section__lede {
+  font-family: var(--serif);
+  font-size: 18px;
+  font-style: italic;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  margin-top: 12px;
+}
+
+/* ===== Content elements ===== */
+.main p {
+  margin: 0 0 20px;
+  font-size: 17px;
+  line-height: 1.8;
+}
+.main p strong, .main li strong {
+  color: var(--ink);
+  font-weight: 700;
+  background: linear-gradient(180deg, transparent 65%, rgba(184, 134, 26, 0.2) 65%);
+  padding: 0 2px;
+}
+.main h3 {
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 700;
+  margin: 48px 0 18px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.main h3 .h3-num {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--rust);
+  margin-right: 12px;
+  font-weight: 500;
+  vertical-align: 2px;
+}
+.main h4 {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 700;
+  margin: 30px 0 12px;
+  color: var(--ink);
+}
+.main h4 em {
+  color: var(--rust);
+  font-style: italic;
+  font-weight: 500;
+}
+.main ul, .main ol {
+  margin: 0 0 24px;
+  padding-left: 24px;
+}
+.main li {
+  margin-bottom: 8px;
+  line-height: 1.75;
+}
+.main ul li::marker {
+  color: var(--rust);
+}
+.main ol li::marker {
+  color: var(--rust);
+  font-family: var(--mono);
+  font-weight: 700;
+}
+.main a {
+  color: var(--rust);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* Inline code */
+.main code {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  background: var(--paper-darker);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--teal);
+  border: 1px solid var(--border);
+}
+
+/* Code blocks */
+.codeblock {
+  background: #1F1B16;
+  color: #E8DDC8;
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin: 24px 0;
+  overflow-x: auto;
+  position: relative;
+  font-family: var(--mono);
+  font-size: 13.5px;
+  line-height: 1.7;
+  box-shadow: var(--shadow-md);
+}
+.codeblock::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: rgba(232, 221, 200, 0.4);
+  text-transform: uppercase;
+}
+.codeblock pre {
+  margin: 0;
+  white-space: pre;
+  font-family: inherit;
+}
+.codeblock pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+/* Simple syntax color */
+.tk-keyword { color: #E89B5F; }
+.tk-string  { color: #B8C879; }
+.tk-comment { color: #7A6A5A; font-style: italic; }
+.tk-fn      { color: #6FB3B8; }
+.tk-num     { color: #D4A04A; }
+.tk-tag     { color: #C85B3D; }
+.tk-attr    { color: #E89B5F; }
+
+.btn-copy {
+  position: absolute;
+  top: 10px;
+  right: 80px;
+  background: rgba(232, 221, 200, 0.08);
+  color: rgba(232, 221, 200, 0.7);
+  border: 1px solid rgba(232, 221, 200, 0.15);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  transition: all 0.2s ease;
+}
+.btn-copy:hover {
+  background: rgba(232, 221, 200, 0.15);
+  color: var(--paper);
+}
+.btn-copy.copied {
+  background: rgba(74, 107, 42, 0.4);
+  color: var(--paper);
+  border-color: var(--success);
+}
+
+/* Callouts */
+.callout {
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin: 24px 0;
+  display: flex;
+  gap: 16px;
+  position: relative;
+  border-left: 4px solid;
+}
+.callout__icon {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  height: fit-content;
+  text-transform: uppercase;
+}
+.callout__body {
+  flex: 1;
+}
+.callout__body p:last-child { margin-bottom: 0; }
+
+.callout--info {
+  background: rgba(31, 74, 71, 0.05);
+  border-left-color: var(--teal);
+}
+.callout--info .callout__icon {
+  background: var(--teal);
+  color: var(--paper);
+}
+
+.callout--tip {
+  background: rgba(184, 134, 26, 0.06);
+  border-left-color: var(--amber);
+}
+.callout--tip .callout__icon {
+  background: var(--amber);
+  color: var(--paper);
+}
+
+.callout--warning {
+  background: rgba(163, 59, 31, 0.05);
+  border-left-color: var(--rust);
+}
+.callout--warning .callout__icon {
+  background: var(--rust);
+  color: var(--paper);
+}
+
+.callout--key {
+  background: var(--paper-dark);
+  border-left-color: var(--ink);
+}
+.callout--key .callout__icon {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* Comparison list (good/bad) */
+.compare {
+  margin: 24px 0;
+}
+.compare__item {
+  border-left: 3px solid;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  background: var(--paper-dark);
+  border-radius: 0 8px 8px 0;
+}
+.compare__label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.compare--bad { border-left-color: var(--rust); }
+.compare--bad .compare__label { color: var(--rust); }
+.compare--ok  { border-left-color: var(--amber); }
+.compare--ok  .compare__label { color: var(--amber); }
+.compare--good { border-left-color: var(--success); }
+.compare--good .compare__label { color: var(--success); }
+
+/* Tables */
+.tbl-wrap {
+  margin: 24px 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--paper-dark);
+}
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--sans);
+  font-size: 14px;
+}
+table.data th {
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 500;
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  font-family: var(--mono);
+  text-transform: uppercase;
+}
+table.data td {
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+  vertical-align: top;
+  line-height: 1.6;
+}
+table.data tr:nth-child(even) td {
+  background: rgba(217, 207, 184, 0.2);
+}
+table.data code {
+  font-size: 12px;
+  background: var(--paper);
+}
+
+/* Practice exercise box */
+.practice {
+  background: var(--paper-dark);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 30px;
+  margin: 36px 0;
+  position: relative;
+}
+.practice__label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--rust);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.practice__label::before {
+  content: "✎";
+  font-size: 16px;
+  color: var(--rust);
+}
+.practice__title {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  color: var(--ink);
+}
+.practice__title em {
+  font-style: italic;
+  color: var(--rust);
+}
+.practice__question {
+  font-style: italic;
+  color: var(--ink-soft);
+  font-size: 17px;
+  line-height: 1.7;
+}
+.practice__question p { margin-bottom: 12px; }
+.practice__answer {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px dashed var(--border);
+}
+.btn-reveal {
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+}
+.btn-reveal:hover {
+  background: var(--rust);
+  transform: translateY(-1px);
+}
+.practice__answer-body {
+  display: none;
+  margin-top: 18px;
+  padding: 18px 22px;
+  background: var(--paper);
+  border-radius: 8px;
+  border-left: 3px solid var(--success);
+}
+.practice__answer-body.revealed { display: block; animation: fadeIn 0.3s ease; }
+.practice__answer-body p { margin-bottom: 12px; }
+.practice__answer-body p:last-child { margin-bottom: 0; }
+.practice__answer-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--success);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Complete toggle */
+.section__complete {
+  margin-top: 36px;
+  padding: 24px;
+  background: var(--paper-dark);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  text-align: center;
+}
+.btn-complete {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.btn-complete:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+.btn-complete .check {
+  width: 18px; height: 18px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+.btn-complete.completed {
+  background: var(--success);
+  border-color: var(--success);
+  color: var(--paper);
+}
+.btn-complete.completed .check {
+  background: var(--paper);
+  color: var(--success);
+}
+.btn-complete.completed .check::after {
+  content: "✓";
+  font-weight: 700;
+}
+
+/* Template box (copyable) */
+.template {
+  background: #1F1B16;
+  color: #E8DDC8;
+  border-radius: 8px;
+  padding: 24px;
+  margin: 24px 0;
+  position: relative;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.9;
+  white-space: pre-wrap;
+  box-shadow: var(--shadow-md);
+}
+.template__placeholder { color: #7A6A5A; font-style: italic; }
+.template__label { color: #E89B5F; font-weight: 700; }
+
+/* SOP flow */
+.sop {
+  margin: 28px 0;
+  padding: 28px;
+  background: var(--paper-dark);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.sop__step {
+  display: flex;
+  gap: 18px;
+  padding: 14px 0;
+  border-bottom: 1px dashed var(--border);
+  align-items: flex-start;
+}
+.sop__step:last-child { border-bottom: none; }
+.sop__num {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  background: var(--ink);
+  color: var(--paper);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-weight: 700;
+}
+.sop__body strong {
+  font-family: var(--serif);
+  color: var(--ink);
+}
+.sop__body small {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink-muted);
+  font-size: 14px;
+  font-style: italic;
+}
+
+/* Final note */
+.final-note {
+  margin-top: 60px;
+  padding: 40px;
+  background: linear-gradient(135deg, var(--paper-dark) 0%, var(--paper-darker) 100%);
+  border-radius: 16px;
+  text-align: center;
+  border: 1px solid var(--border);
+}
+.final-note__icon {
+  font-family: var(--serif);
+  font-size: 48px;
+  color: var(--rust);
+  font-style: italic;
+  font-weight: 900;
+  margin-bottom: 16px;
+  line-height: 1;
+}
+.final-note__title {
+  font-family: var(--serif);
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.final-note__title em {
+  font-style: italic;
+  color: var(--rust);
+}
+.final-note__body {
+  font-family: var(--serif);
+  font-style: italic;
+  color: var(--ink-soft);
+  font-size: 17px;
+  max-width: 480px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+/* Mobile overlay */
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(31, 27, 22, 0.4);
+  z-index: 40;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.overlay.active {
+  display: block;
+  opacity: 1;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 960px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .topbar { display: flex; }
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    width: 86%;
+    max-width: 320px;
+    height: 100vh;
+    z-index: 60;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    box-shadow: var(--shadow-lg);
+    border-right: 1px solid var(--border);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .main {
+    padding: 32px 22px 80px;
+  }
+  .hero {
+    padding-bottom: 36px;
+    margin-bottom: 40px;
+  }
+  .section {
+    margin-bottom: 56px;
+  }
+  .practice {
+    padding: 22px 20px;
+  }
+  .codeblock, .template {
+    padding: 16px 18px;
+    font-size: 12.5px;
+  }
+  .final-note {
+    padding: 28px 22px;
+  }
+}
+
+@media (max-width: 480px) {
+  body { font-size: 16px; }
+  .main p { font-size: 16px; line-height: 1.75; }
+  .hero__subtitle { font-size: 18px; }
+  .hero__meta { gap: 20px; }
+  .main h3 { font-size: 22px; }
+  .main h4 { font-size: 17px; }
+  table.data { font-size: 12.5px; }
+  table.data th, table.data td { padding: 10px 10px; }
+}
+</style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-bar__fill" id="topProgress"></div></div>
+
+<div class="topbar">
+  <div class="topbar__title">Debug & AI <em>協作筆記</em></div>
+  <button class="topbar__menu" id="menuBtn" aria-label="開啟章節">☰</button>
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<div class="layout">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar__brand">
+      <div class="sidebar__brand-eyebrow">FIELD NOTEBOOK</div>
+      <div class="sidebar__brand-title">Debug &<br><em>AI 協作</em> 速通</div>
+    </div>
+
+    <div class="progress-pill">
+      <div class="progress-pill__label">
+        <span>學習進度</span>
+        <span id="pctLabel">0%</span>
+      </div>
+      <div class="progress-pill__count"><em id="completedCount">0</em><span class="progress-pill__total"> / 6 章節</span></div>
+      <div class="progress-pill__track"><div class="progress-pill__fill" id="sideProgress"></div></div>
+    </div>
+
+    <nav class="toc">
+      <div class="toc__group">
+        <div class="toc__group-label">課前準備</div>
+        <li class="toc__item"><a class="toc__link" href="#sec-intro" data-section="intro">
+          <span class="toc__check"></span><span>課程簡介與心法</span>
+        </a></li>
+        <li class="toc__item"><a class="toc__link" href="#sec-foundation" data-section="foundation">
+          <span class="toc__check"></span><span>必懂的最小概念集</span>
+        </a></li>
+      </div>
+
+      <div class="toc__group">
+        <div class="toc__group-label">四大單元</div>
+        <li class="toc__item"><a class="toc__link" href="#sec-unit1" data-section="unit1">
+          <span class="toc__check"></span><span>1 ・ 錯誤訊息怎麼讀</span>
+        </a></li>
+        <li class="toc__item"><a class="toc__link" href="#sec-unit2" data-section="unit2">
+          <span class="toc__check"></span><span>2 ・ Logger 與 console</span>
+        </a></li>
+        <li class="toc__item"><a class="toc__link" href="#sec-unit3" data-section="unit3">
+          <span class="toc__check"></span><span>3 ・ 高品質 Bug Prompt</span>
+        </a></li>
+        <li class="toc__item"><a class="toc__link" href="#sec-unit4" data-section="unit4">
+          <span class="toc__check"></span><span>4 ・ Debug SOP</span>
+        </a></li>
+      </div>
+
+      <div class="toc__group">
+        <div class="toc__group-label">附錄</div>
+        <li class="toc__item"><a class="toc__link" href="#sec-templates" data-section="templates">
+          <span class="toc__check"></span><span>速查表 & 模板</span>
+        </a></li>
+      </div>
+    </nav>
+
+    <div class="sidebar__footer">
+      <button class="btn-reset" id="btnReset">重設所有進度</button>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+    <div class="main__inner">
+
+      <!-- ============ HERO ============ -->
+      <header class="hero" id="sec-top">
+        <div class="hero__eyebrow">A Personal Field Notebook · 2026</div>
+        <h1 class="hero__title">當 <em>偵探</em>,<br>不要當 <em>通靈師</em>。</h1>
+        <p class="hero__subtitle">— 給每位卡在 AI 寫的 code 裡撞牆,卻不知道從哪修起的人。一本可以慢慢讀的 Debug 與 AI 協作速通筆記。</p>
+        <div class="hero__meta">
+          <div class="hero__meta-item">
+            <span class="hero__meta-label">FORMAT</span>
+            <span class="hero__meta-value">4 個單元 + 附錄</span>
+          </div>
+          <div class="hero__meta-item">
+            <span class="hero__meta-label">PACE</span>
+            <span class="hero__meta-value">每天 1 章,一週讀完</span>
+          </div>
+          <div class="hero__meta-item">
+            <span class="hero__meta-label">FOR</span>
+            <span class="hero__meta-value">Apps Script / Vibe Coders</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ============ INTRO ============ -->
+      <section class="section" id="sec-intro" data-section="intro">
+        <div class="section__header">
+          <div class="section__number">00 — Preface</div>
+          <h2 class="section__title">課程<em>簡介</em>與<em>心法</em></h2>
+          <p class="section__lede">在開始之前,先弄清楚一件事:你不缺程式能力,你缺的是 Debug 的方法。</p>
+        </div>
+
+        <h3><span class="h3-num">§1</span>你真正的問題</h3>
+        <p>你的問題不是「不會寫程式」。<strong>你的問題是 AI 幫你寫了一坨程式碼,跑起來有 bug,但你看不懂程式碼,所以不知道怎麼跟 AI 描述問題、也不知道哪裡該重寫。</strong></p>
+        <p>這是現在很多人遇到的「Vibe Coding 撞牆期」。重新規劃架構不會解決這個問題,因為:</p>
+        <ul>
+          <li>就算給你一個完美架構,AI 寫出來的程式碼還是會有 bug(這是必然)</li>
+          <li>你還是看不懂、不知道怎麼描述 bug</li>
+          <li>你只會從「在亂的程式碼上撞牆」變成「在乾淨的程式碼上撞牆」</li>
+        </ul>
+
+        <div class="callout callout--key">
+          <div class="callout__icon">核心</div>
+          <div class="callout__body">
+            <p>你真正需要的是 <strong>Debug 能力</strong> 跟 <strong>跟 AI 協作的能力</strong>。這兩個能力跟「會不會寫程式」是兩回事,而它們可以在 3-5 小時內學會基本款。</p>
+          </div>
+        </div>
+
+        <h3><span class="h3-num">§2</span>工程師的真實 Debug 流程</h3>
+        <p>工程師面對 bug 的真實過程,不是「天才靈光一閃就知道哪裡錯」,而是:</p>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">心法</div>
+          <div class="callout__body">
+            <p><strong>假設 → 驗證 → 縮小範圍 → 假設 → 驗證 → 縮小範圍 → 抓到犯人。</strong></p>
+            <p>就像偵探辦案。你今天學的就是當偵探的三個工具。</p>
+          </div>
+        </div>
+
+        <h3><span class="h3-num">§3</span>三個核心能力缺口</h3>
+
+        <div class="tbl-wrap">
+        <table class="data">
+          <thead><tr><th>缺口</th><th>症狀</th><th>解法</th></tr></thead>
+          <tbody>
+            <tr><td><strong>看不懂程式碼結構</strong></td><td>AI 給你 300 行你不知道誰是誰</td><td>學「讀程式碼」(不是寫)</td></tr>
+            <tr><td><strong>不會描述 bug</strong></td><td>只會說「壞了、不能用」</td><td>學「結構化描述問題」</td></tr>
+            <tr><td><strong>不會用 debug 工具</strong></td><td>出錯只能截圖問 AI</td><td>學「Console、錯誤訊息、Logger」</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <h3><span class="h3-num">§4</span>怎麼讀這本筆記</h3>
+        <ul>
+          <li><strong>每天讀一章</strong>,讀完就標記完成,看著進度條增加會有動力</li>
+          <li><strong>練習題先想再看答案</strong>,答案點開才會顯示</li>
+          <li><strong>模板和速查表存起來</strong>,以後每次問 bug 都用</li>
+          <li><strong>不用一次讀完</strong>,本子會記得你讀到哪</li>
+        </ul>
+
+        <div class="section__complete">
+          <button class="btn-complete" data-complete="intro">
+            <span class="check"></span>
+            <span class="label">標記為已讀</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ FOUNDATION ============ -->
+      <section class="section" id="sec-foundation" data-section="foundation">
+        <div class="section__header">
+          <div class="section__number">01 — Foundation</div>
+          <h2 class="section__title">必懂的<em>最小概念集</em></h2>
+          <p class="section__lede">不用上 HTML/CSS/JS 完整課程。你只需要這五件事。</p>
+        </div>
+
+        <h3><span class="h3-num">§1</span>三個檔案的分工</h3>
+        <p>Apps Script + Sheets 網頁就是這三個檔案的合作。看懂這個你就有 50% 的概念。</p>
+
+        <div class="codeblock" data-lang="ARCHITECTURE">
+<button class="btn-copy" data-copy-target="arch1">複製</button>
+<pre id="arch1"><span class="tk-comment"># 你的網頁 = 三個檔案合作</span>
+
+├── Index.html       <span class="tk-comment">← 畫面長什麼樣(骨架 + 樣式 + 按鈕)</span>
+├── Code.gs          <span class="tk-comment">← 後端邏輯(寫資料到 Sheets、讀日曆)</span>
+└── Google Sheet     <span class="tk-comment">← 資料庫(所有記錄存在這)</span></pre>
+        </div>
+
+        <h3><span class="h3-num">§2</span>資料怎麼流動</h3>
+        <p>記住這條路徑,你就懂網頁怎麼運作:</p>
+
+        <div class="codeblock" data-lang="DATA FLOW">
+<pre>你在手機點「開始」按鈕
+   ↓
+Index.html 的 JavaScript 接到點擊
+   ↓
+呼叫 Code.gs 裡的函數(例如 startTask)
+   ↓
+Code.gs 把資料寫進 Google Sheet
+   ↓
+回傳「成功」訊息給 Index.html
+   ↓
+畫面更新,顯示「任務進行中」</pre>
+        </div>
+
+        <h3><span class="h3-num">§3</span>三種程式語言各管什麼</h3>
+
+        <div class="tbl-wrap">
+        <table class="data">
+          <thead><tr><th>語言</th><th>在哪個檔案</th><th>負責什麼</th><th>比喻</th></tr></thead>
+          <tbody>
+            <tr><td><code>HTML</code></td><td>Index.html</td><td>畫面結構</td><td>房子的骨架</td></tr>
+            <tr><td><code>CSS</code></td><td>Index.html</td><td>外觀樣式</td><td>油漆、家具</td></tr>
+            <tr><td><code>JavaScript</code></td><td>Index.html + Code.gs</td><td>互動邏輯</td><td>電器、開關</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <div class="callout callout--tip">
+          <div class="callout__icon">關鍵</div>
+          <div class="callout__body">
+            <p>你<strong>不需要會寫</strong>這三種語言,只需要看懂 AI 寫的程式碼,加上有註解就能理解大概在做什麼。看懂 > 會寫。</p>
+          </div>
+        </div>
+
+        <h3><span class="h3-num">§4</span>「前端」與「後端」</h3>
+        <p>這兩個詞會一直出現,先記下:</p>
+        <ul>
+          <li><strong>前端</strong>:使用者看到的東西。在 Index.html 裡執行,跑在你的<strong>瀏覽器</strong>。</li>
+          <li><strong>後端</strong>:使用者看不到的處理。在 Code.gs 裡執行,跑在<strong>Google 的伺服器</strong>。</li>
+        </ul>
+        <p>為什麼這個重要?因為 <strong>debug 前你要先判斷「壞在前端還是後端」</strong>,工具不一樣、看訊息的地方也不一樣。</p>
+
+        <h3><span class="h3-num">§5</span>跟 AI 協作的鐵則</h3>
+
+        <div class="callout callout--warning">
+          <div class="callout__icon">鐵則</div>
+          <div class="callout__body">
+            <p><strong>讓 AI 幫你寫小塊、每次寫完都驗證。</strong></p>
+          </div>
+        </div>
+
+        <div class="compare">
+          <div class="compare__item compare--bad">
+            <div class="compare__label">✘ 錯誤示範</div>
+            <p style="margin:0">跟 AI 說「幫我寫一個時間追蹤網頁」 → 它噴 500 行給你 → 跑不起來 → 你不知從哪修起。</p>
+          </div>
+          <div class="compare__item compare--good">
+            <div class="compare__label">✓ 正確示範</div>
+            <p style="margin:0">「先幫我寫一個按鈕,點下去 Logger 印出『hello』就好」→ 跑通 → 「現在改成印出當前時間」→ 跑通 → 「現在把時間寫進 Sheet 的 A1」→ 跑通…</p>
+          </div>
+        </div>
+
+        <p><strong>每一步都小、每一步都能跑、每一步你都看得懂。</strong>這叫「漸進式開發」,是專業工程師也在用的方法。</p>
+
+        <div class="section__complete">
+          <button class="btn-complete" data-complete="foundation">
+            <span class="check"></span>
+            <span class="label">標記為已讀</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ UNIT 1 ============ -->
+      <section class="section" id="sec-unit1" data-section="unit1">
+        <div class="section__header">
+          <div class="section__number">02 — Unit One</div>
+          <h2 class="section__title">錯誤訊息<br><em>怎麼讀</em></h2>
+          <p class="section__lede">工程師最大的秘密:80% 的 bug,錯誤訊息已經告訴你答案了。</p>
+        </div>
+
+        <div class="callout callout--key">
+          <div class="callout__icon">真相</div>
+          <div class="callout__body">
+            <p>大部分新手不看錯誤訊息直接截圖問 AI,等於警察報案不看監視器直接通靈。<strong>學會讀錯誤訊息,你就贏 50% 的人。</strong></p>
+          </div>
+        </div>
+
+        <h3><span class="h3-num">§1</span>Apps Script 錯誤的兩種類型</h3>
+
+        <h4><em>類型 A.</em> 後端錯誤(Code.gs 出錯)</h4>
+        <p>長這樣:</p>
+        <div class="codeblock" data-lang="ERROR">
+<pre>TypeError: Cannot read properties of undefined (reading 'getRange')
+    at startTask (Code.gs:15:23)
+    at __GS_INTERNAL_top_function_call__.gs:1:8</pre>
+        </div>
+
+        <p>從上到下、從左到右讀:</p>
+
+        <div class="tbl-wrap">
+        <table class="data">
+          <thead><tr><th>部分</th><th>內容</th><th>意思</th></tr></thead>
+          <tbody>
+            <tr><td>錯誤類型</td><td><code>TypeError</code></td><td>型別錯誤:你把東西當成它不是的東西用了</td></tr>
+            <tr><td>錯誤描述</td><td><code>Cannot read properties of undefined</code></td><td>某個東西是空的,你卻想從它讀屬性</td></tr>
+            <tr><td>出錯位置</td><td><code>Code.gs:15:23</code></td><td><strong>第 15 行,第 23 個字元</strong>,函數叫 startTask</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <p><strong>翻譯成人話:</strong>你的 <code>startTask</code> 函數第 15 行,有一個東西是空的,但你卻對它呼叫了 <code>.getRange()</code>。</p>
+
+        <p>通常是這種寫法:</p>
+        <div class="codeblock" data-lang="JS">
+<button class="btn-copy" data-copy-target="ex1">複製</button>
+<pre id="ex1"><span class="tk-keyword">const</span> sheet = SpreadsheetApp.<span class="tk-fn">getActive</span>().<span class="tk-fn">getSheetByName</span>(<span class="tk-string">'Task'</span>);  <span class="tk-comment">// ← 拼錯了,實際叫 'Tasks'</span>
+sheet.<span class="tk-fn">getRange</span>(<span class="tk-string">'A1'</span>).<span class="tk-fn">setValue</span>(<span class="tk-string">'hi'</span>);  <span class="tk-comment">// ← sheet 是 undefined,所以炸了</span></pre>
+        </div>
+
+        <h4><em>類型 B.</em> 前端錯誤(HTML 裡的 JavaScript 出錯)</h4>
+        <p>這種錯誤<strong>不會出現在 Apps Script 編輯器</strong>,要去瀏覽器的「開發者工具」看(下一單元會教)。</p>
+
+        <h3><span class="h3-num">§2</span>五個你絕對會遇到的錯誤</h3>
+        <p>記住這五個,涵蓋 70% 情況:</p>
+
+        <div class="tbl-wrap">
+        <table class="data">
+          <thead><tr><th>錯誤訊息</th><th>中文翻譯</th><th>通常原因</th></tr></thead>
+          <tbody>
+            <tr><td><code>TypeError: Cannot read properties of undefined</code></td><td>你想用一個不存在的東西</td><td>變數名字打錯、Sheet 名字打錯、函數還沒回傳就用</td></tr>
+            <tr><td><code>ReferenceError: X is not defined</code></td><td>X 這個東西根本沒宣告</td><td>變數名字拼錯、函數名字拼錯</td></tr>
+            <tr><td><code>SyntaxError: Unexpected token</code></td><td>語法錯誤,程式根本跑不起來</td><td>漏了括號、分號、引號沒成對</td></tr>
+            <tr><td><code>Range not found</code> / <code>Sheet not found</code></td><td>找不到指定的儲存格/分頁</td><td>Sheet 分頁名稱拼錯、A1 寫成 A:1</td></tr>
+            <tr><td><code>Authorization required</code></td><td>權限問題</td><td>第一次跑要授權、或權限範圍不足</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <!-- Practice 1 -->
+        <div class="practice">
+          <div class="practice__label">練習一</div>
+          <div class="practice__title">讀懂這則錯誤訊息</div>
+          <div class="practice__question">
+            <p>假設你跑你的網頁時,Apps Script 編輯器跳出這個錯誤:</p>
+            <div class="codeblock" data-lang="ERROR" style="margin:14px 0;">
+<pre>ReferenceError: stratTask is not defined
+    at Code.gs:42:5</pre>
+            </div>
+            <p>請問:</p>
+            <ol style="margin: 12px 0 0 0;">
+              <li>這是哪一種錯誤(後端 / 前端)?</li>
+              <li>出錯在第幾行?</li>
+              <li>你覺得真正的問題是什麼?</li>
+            </ol>
+          </div>
+          <div class="practice__answer">
+            <button class="btn-reveal" data-reveal="ans-1">先想 30 秒,再點開答案</button>
+            <div class="practice__answer-body" id="ans-1">
+              <div class="practice__answer-label">參考解答</div>
+              <ol>
+                <li><strong>後端錯誤</strong>(Code.gs 開頭就是線索)</li>
+                <li>第 <strong>42</strong> 行</li>
+                <li><strong><code>stratTask</code> 是 <code>startTask</code> 的拼字錯誤</strong>(start 拼成 strat)。<code>ReferenceError</code> + <code>is not defined</code> 99% 就是名字拼錯。</li>
+              </ol>
+              <p style="margin-top: 12px;">如果你答對了,<strong>你已經超越 50% 的 Vibe Coder</strong>,他們連錯誤訊息都不看。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="section__complete">
+          <button class="btn-complete" data-complete="unit1">
+            <span class="check"></span>
+            <span class="label">標記為已讀</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ UNIT 2 ============ -->
+      <section class="section" id="sec-unit2" data-section="unit2">
+        <div class="section__header">
+          <div class="section__number">03 — Unit Two</div>
+          <h2 class="section__title">Logger 與 console<br>—— <em>偵探的放大鏡</em></h2>
+          <p class="section__lede">有時候程式不會報錯,但結果就是不對。這時候,你需要在程式碼裡插入「印出來看看」。</p>
+        </div>
+
+        <h3><span class="h3-num">§1</span>為什麼需要這個</h3>
+        <p>常見的「靜默失敗」狀況:</p>
+        <ul>
+          <li>點按鈕後 Sheet 沒寫入,但<strong>也沒錯誤訊息</strong></li>
+          <li>計算出來的時間不對</li>
+          <li>畫面顯示 <code>undefined</code></li>
+        </ul>
+        <p>這時候單純看程式碼猜不出來。你需要<strong>讓程式自己告訴你資料流到哪壞了。</strong></p>
+
+        <h3><span class="h3-num">§2</span>工具一:Logger.log() —— 給 Code.gs 用</h3>
+
+        <div class="codeblock" data-lang="CODE.GS">
+<button class="btn-copy" data-copy-target="logger1">複製</button>
+<pre id="logger1"><span class="tk-keyword">function</span> <span class="tk-fn">startTask</span>() {
+  Logger.<span class="tk-fn">log</span>(<span class="tk-string">'🟢 startTask 被呼叫了'</span>);  <span class="tk-comment">// ← 確認函數有跑到</span>
+
+  <span class="tk-keyword">const</span> now = <span class="tk-keyword">new</span> <span class="tk-fn">Date</span>();
+  Logger.<span class="tk-fn">log</span>(<span class="tk-string">'現在時間是: '</span> + now);  <span class="tk-comment">// ← 確認時間對不對</span>
+
+  <span class="tk-keyword">const</span> sheet = SpreadsheetApp.<span class="tk-fn">getActive</span>().<span class="tk-fn">getSheetByName</span>(<span class="tk-string">'Tasks'</span>);
+  Logger.<span class="tk-fn">log</span>(<span class="tk-string">'sheet 物件: '</span> + sheet);  <span class="tk-comment">// ← 印 null 就是名字錯</span>
+
+  sheet.<span class="tk-fn">appendRow</span>([now]);
+  Logger.<span class="tk-fn">log</span>(<span class="tk-string">'✅ 寫入完成'</span>);
+}</pre>
+        </div>
+
+        <h4><em>怎麼看</em> Logger 的結果?</h4>
+        <ol>
+          <li>在 Apps Script 編輯器手動跑這個函數(按上方的「執行」)</li>
+          <li>下方會出現「執行記錄」面板</li>
+          <li>看哪一行印出來、哪一行沒印,就知道程式跑到哪一步停了</li>
+        </ol>
+
+        <h3><span class="h3-num">§3</span>工具二:console.log() —— 給 HTML 用</h3>
+
+        <div class="codeblock" data-lang="INDEX.HTML">
+<button class="btn-copy" data-copy-target="cons1">複製</button>
+<pre id="cons1"><span class="tk-tag">&lt;script&gt;</span>
+<span class="tk-keyword">function</span> <span class="tk-fn">onStartButtonClick</span>() {
+  console.<span class="tk-fn">log</span>(<span class="tk-string">'🟢 按鈕被點到了'</span>);
+
+  google.script.run
+    .<span class="tk-fn">withSuccessHandler</span>(<span class="tk-keyword">function</span>(result) {
+      console.<span class="tk-fn">log</span>(<span class="tk-string">'✅ 後端回傳:'</span>, result);  <span class="tk-comment">// 看後端回傳什麼</span>
+    })
+    .<span class="tk-fn">withFailureHandler</span>(<span class="tk-keyword">function</span>(err) {
+      console.<span class="tk-fn">log</span>(<span class="tk-string">'❌ 後端錯誤:'</span>, err);  <span class="tk-comment">// 看錯在哪</span>
+    })
+    .<span class="tk-fn">startTask</span>();
+}
+<span class="tk-tag">&lt;/script&gt;</span></pre>
+        </div>
+
+        <h4><em>怎麼看</em> Console 的結果?</h4>
+        <div class="callout callout--warning">
+          <div class="callout__icon">注意</div>
+          <div class="callout__body">
+            <p><strong>手機上很難看 Console,debug 階段一律用電腦瀏覽器。</strong></p>
+          </div>
+        </div>
+        <ul>
+          <li>電腦 Chrome / Edge:按 <code>F12</code> 或 <code>Ctrl + Shift + I</code>(Mac 是 <code>Cmd + Option + I</code>)</li>
+          <li>找到 <strong>「Console」</strong> 分頁</li>
+          <li>你的 <code>console.log</code> 內容會出現在這裡</li>
+          <li><strong>紅色文字 = 錯誤訊息</strong>,這就是單元一的「前端錯誤」</li>
+        </ul>
+
+        <h3><span class="h3-num">§4</span>終極技巧:夾擠法</h3>
+        <p>不知道哪一行出錯時,<strong>在懷疑的區段每隔幾行插一個 Logger</strong>,看哪個有印、哪個沒印:</p>
+
+        <div class="codeblock" data-lang="JS">
+<pre><span class="tk-keyword">function</span> <span class="tk-fn">startTask</span>() {
+  Logger.<span class="tk-fn">log</span>(<span class="tk-string">'1'</span>);  <span class="tk-comment">// 印出 ✅</span>
+  <span class="tk-keyword">const</span> sheet = SpreadsheetApp.<span class="tk-fn">getActive</span>().<span class="tk-fn">getSheetByName</span>(<span class="tk-string">'Tasks'</span>);
+  Logger.<span class="tk-fn">log</span>(<span class="tk-string">'2'</span>);  <span class="tk-comment">// 印出 ✅</span>
+  <span class="tk-keyword">const</span> lastRow = sheet.<span class="tk-fn">getLastRow</span>();
+  Logger.<span class="tk-fn">log</span>(<span class="tk-string">'3'</span>);  <span class="tk-comment">// 印出 ✅</span>
+  <span class="tk-keyword">const</span> newId = <span class="tk-fn">generateId</span>();  <span class="tk-comment">// 假設這裡有 bug</span>
+  Logger.<span class="tk-fn">log</span>(<span class="tk-string">'4'</span>);  <span class="tk-comment">// ❌ 沒印出來!</span>
+  sheet.<span class="tk-fn">appendRow</span>([newId, <span class="tk-keyword">new</span> <span class="tk-fn">Date</span>()]);
+  Logger.<span class="tk-fn">log</span>(<span class="tk-string">'5'</span>);  <span class="tk-comment">// 沒印出來</span>
+}</pre>
+        </div>
+
+        <div class="callout callout--tip">
+          <div class="callout__icon">技巧</div>
+          <div class="callout__body">
+            <p><strong>3 有印、4 沒印 → 罪犯在第 3 行跟第 4 行之間,也就是 <code>generateId()</code> 出問題。</strong></p>
+            <p>這招超強,工程師天天用。</p>
+          </div>
+        </div>
+
+        <!-- Practice 2 -->
+        <div class="practice">
+          <div class="practice__label">練習二</div>
+          <div class="practice__title">該在哪裡插 <em>Log</em>?</div>
+          <div class="practice__question">
+            <p>你的網頁點「開始」按鈕後,Sheet 沒有寫入新的列,<strong>而且沒有任何錯誤訊息</strong>。</p>
+            <p>請告訴自己:<strong>你會在哪幾個地方插入 Logger.log 或 console.log 來找出問題?</strong> 至少想 3 個位置。</p>
+          </div>
+          <div class="practice__answer">
+            <button class="btn-reveal" data-reveal="ans-2">先想 30 秒,再點開答案</button>
+            <div class="practice__answer-body" id="ans-2">
+              <div class="practice__answer-label">參考解答(6 個位置)</div>
+              <ol>
+                <li><strong>HTML 的按鈕點擊處理函數一開頭</strong> —— <code>console.log('按鈕點到了')</code> 確認點擊事件有觸發</li>
+                <li><strong><code>withSuccessHandler</code> 裡</strong> —— <code>console.log('後端回傳:', result)</code> 確認前端有呼叫到後端</li>
+                <li><strong><code>withFailureHandler</code> 裡</strong> —— <code>console.log('失敗:', err)</code> 看有沒有靜默失敗</li>
+                <li><strong>後端 <code>startTask()</code> 函數開頭</strong> —— <code>Logger.log('startTask 被呼叫')</code> 確認後端真的有被執行</li>
+                <li><strong><code>appendRow</code> 那一行前後</strong> —— <code>Logger.log('準備寫入:', dataArray)</code> 確認資料長對的樣子</li>
+                <li><strong><code>getSheetByName</code> 之後</strong> —— <code>Logger.log('sheet:', sheet)</code> 確認分頁名稱沒拼錯(印 null 就是名字錯)</li>
+              </ol>
+              <p style="margin-top:12px;"><strong>重點不是「猜出問題」,是「逐步驗證讓程式自己告訴你答案」。</strong></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="section__complete">
+          <button class="btn-complete" data-complete="unit2">
+            <span class="check"></span>
+            <span class="label">標記為已讀</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ UNIT 3 ============ -->
+      <section class="section" id="sec-unit3" data-section="unit3">
+        <div class="section__header">
+          <div class="section__number">04 — Unit Three</div>
+          <h2 class="section__title">寫高品質的<br><em>Bug Prompt</em></h2>
+          <p class="section__lede">你給的線索越多,AI 越不用猜。這個能力,才是你跟 AI 協作的真正戰力。</p>
+        </div>
+
+        <h3><span class="h3-num">§1</span>為什麼這個最重要</h3>
+        <p>你學會看錯誤訊息、學會用 Logger 之後,<strong>接下來 90% 還是會交給 AI 修</strong>。差別在於:</p>
+
+        <div class="compare">
+          <div class="compare__item compare--bad">
+            <div class="compare__label">✘ 爛 Prompt</div>
+            <p style="margin:0">AI 亂猜 → 改錯 → 又出新 bug → 鬼打牆 10 輪</p>
+          </div>
+          <div class="compare__item compare--good">
+            <div class="compare__label">✓ 好 Prompt</div>
+            <p style="margin:0">AI 一次找到問題 → 一次解決</p>
+          </div>
+        </div>
+
+        <h3><span class="h3-num">§2</span>高品質 Bug Prompt 的 7 個元素</h3>
+
+        <div class="tbl-wrap">
+        <table class="data">
+          <thead><tr><th>編號</th><th>元素</th><th>範例</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><strong>我在做什麼</strong></td><td>「我點擊『開始任務』按鈕」</td></tr>
+            <tr><td>2</td><td><strong>預期結果</strong></td><td>「Tasks 分頁應該新增一列,F 欄寫入當前時間」</td></tr>
+            <tr><td>3</td><td><strong>實際結果</strong></td><td>「Sheets 沒有任何變化」</td></tr>
+            <tr><td>4</td><td><strong>錯誤訊息</strong></td><td>「Console 顯示:<code>TypeError: ...</code>」或「無」</td></tr>
+            <tr><td>5</td><td><strong>已經驗證過什麼</strong></td><td>「Logger 顯示 <code>startTask</code> 有跑到,但 <code>appendRow</code> 之後的 log 沒印出來」</td></tr>
+            <tr><td>6</td><td><strong>相關程式碼</strong></td><td>貼上相關函數(<strong>不是整份 500 行</strong>)</td></tr>
+            <tr><td>7</td><td><strong>環境資訊</strong></td><td>「Apps Script + Google Sheets,Chrome 桌面測試」</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <h3><span class="h3-num">§3</span>三個層次的範例對比</h3>
+
+        <div class="compare">
+          <div class="compare__item compare--bad">
+            <div class="compare__label">爛 Prompt</div>
+            <p style="margin:0">「按鈕壞了幫我修」</p>
+          </div>
+          <div class="compare__item compare--ok">
+            <div class="compare__label">普通 Prompt</div>
+            <p style="margin:0">「我點開始按鈕沒反應,幫我看一下程式碼有什麼問題」[貼上 500 行]</p>
+          </div>
+        </div>
+
+        <div class="callout callout--info">
+          <div class="callout__icon">高品質範例</div>
+          <div class="callout__body" style="font-size: 15px;">
+            <p><strong>狀況:</strong>Apps Script + Google Sheets 個人專案,Chrome 桌面測試。</p>
+            <p><strong>預期:</strong>點擊「開始任務」按鈕後,Tasks 分頁新增一列,F 欄寫入當前時間。</p>
+            <p><strong>實際:</strong>點按鈕後 Sheets 完全沒變化。</p>
+            <p><strong>已驗證:</strong></p>
+            <ul>
+              <li>Console 沒有錯誤訊息</li>
+              <li>HTML 端 <code>console.log('按鈕點到了')</code> 有印出來 → 點擊事件 OK</li>
+              <li>HTML 端 <code>withSuccessHandler</code> 裡的 log 沒印出來 → 後端沒回傳</li>
+              <li>Code.gs 端 <code>Logger.log('startTask 被呼叫')</code> 沒印出來 → <strong>後端根本沒被呼叫</strong></li>
+            </ul>
+            <p><strong>問題:</strong>為什麼後端 <code>startTask</code> 沒有被呼叫到?</p>
+            <p style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border); color: var(--rust);"><strong>👆 這種 Prompt,AI 一秒看出答案:</strong>HTML 的 <code>function startTask()</code> 跟後端 <code>startTask</code> 同名了,JavaScript 進入自己的 startTask 無限遞迴,不會呼叫到後端。改成 <code>function onStartClick()</code> 就好。</p>
+          </div>
+        </div>
+
+        <h3><span class="h3-num">§4</span>送你一個 Bug 回報模板</h3>
+        <p>存起來,以後每次問 bug 都用這個模板,你會驚訝 AI 答得多準。</p>
+
+        <div class="template" id="tmpl">
+<button class="btn-copy" data-copy-target="tmpl-content">複製模板</button>
+<span id="tmpl-content"><span class="template__label">【狀況】</span>
+專案:<span class="template__placeholder">Apps Script + Google Sheets 個人時間追蹤</span>
+測試環境:<span class="template__placeholder">Chrome 桌面 / 手機 Safari</span>
+
+<span class="template__label">【我在做什麼】</span>
+<span class="template__placeholder">一句話描述操作</span>
+
+<span class="template__label">【預期結果】</span>
+<span class="template__placeholder">期待會發生什麼</span>
+
+<span class="template__label">【實際結果】</span>
+<span class="template__placeholder">實際發生什麼</span>
+
+<span class="template__label">【錯誤訊息】</span>
+<span class="template__placeholder">貼上錯誤訊息,沒有就寫「無」</span>
+
+<span class="template__label">【已驗證】</span>
+- <span class="template__placeholder">Logger / console 印出什麼</span>
+- <span class="template__placeholder">我已經試過什麼</span>
+- <span class="template__placeholder">我懷疑問題在哪</span>
+
+<span class="template__label">【相關程式碼】</span>
+<span class="template__placeholder">只貼相關函數,不要整份</span>
+
+<span class="template__label">【我的問題】</span>
+<span class="template__placeholder">你想問什麼</span></span>
+        </div>
+
+        <!-- Practice 3 -->
+        <div class="practice">
+          <div class="practice__label">練習三</div>
+          <div class="practice__title">實戰演練</div>
+          <div class="practice__question">
+            <p>假設你遇到這個狀況,請用上面的模板<strong>在心裡寫一份 bug 回報</strong>:</p>
+            <p style="background: var(--paper); padding: 14px 18px; border-left: 3px solid var(--rust); border-radius: 0 8px 8px 0; font-style: normal;">你點「結束任務」按鈕,預期 Sheets 的 G 欄會寫入當前時間,並計算 H 欄(實際時間 = 結束 - 開始)。結果 G 欄有寫入時間,但 H 欄是 <code>#VALUE!</code>。Apps Script 編輯器顯示:<br><br><code>TypeError: endTime.getTime is not a function<br>&nbsp;&nbsp;&nbsp;&nbsp;at endTask (Code.gs:78:24)</code></p>
+          </div>
+          <div class="practice__answer">
+            <button class="btn-reveal" data-reveal="ans-3">查看一份範例回報</button>
+            <div class="practice__answer-body" id="ans-3">
+              <div class="practice__answer-label">範例回報</div>
+              <p><strong>【狀況】</strong>Apps Script + Google Sheets 個人時間追蹤,Chrome 桌面測試。</p>
+              <p><strong>【我在做什麼】</strong>點擊「結束任務」按鈕。</p>
+              <p><strong>【預期】</strong>Tasks 分頁 G 欄寫入當前時間,H 欄計算「實際時間 = 結束時間 - 開始時間」。</p>
+              <p><strong>【實際】</strong>G 欄有寫入時間,但 H 欄顯示 <code>#VALUE!</code>。</p>
+              <p><strong>【錯誤訊息】</strong><code>TypeError: endTime.getTime is not a function</code>,出在 Code.gs 第 78 行第 24 字元,在 <code>endTask</code> 函數裡。</p>
+              <p><strong>【已驗證】</strong>從錯誤訊息看,<code>endTime</code> 不是一個 Date 物件,所以呼叫 <code>.getTime()</code> 失敗。可能是從 Sheet 讀回來的時間變成字串了。</p>
+              <p><strong>【問題】</strong>請幫我看看 <code>endTime</code> 為什麼不是 Date 物件,該怎麼把它正確轉成 Date 才能呼叫 <code>.getTime()</code>?</p>
+              <p style="margin-top: 14px; color: var(--rust);"><strong>差別:</strong>這份回報已經幫 AI 排除一半可能性,定位到「Date 型別轉換」這個小範圍。AI 回答的精準度會差 10 倍。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="section__complete">
+          <button class="btn-complete" data-complete="unit3">
+            <span class="check"></span>
+            <span class="label">標記為已讀</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ UNIT 4 ============ -->
+      <section class="section" id="sec-unit4" data-section="unit4">
+        <div class="section__header">
+          <div class="section__number">05 — Unit Four</div>
+          <h2 class="section__title">Debug 流程 <em>SOP</em></h2>
+          <p class="section__lede">學完工具,最後給你一個「遇到 bug 時的標準流程」,照著做就對了。</p>
+        </div>
+
+        <h3><span class="h3-num">§1</span>五步抓 Bug 法</h3>
+
+        <div class="sop">
+          <div class="sop__step">
+            <div class="sop__num">1</div>
+            <div class="sop__body">
+              <strong>看錯誤訊息</strong>
+              <small>有錯誤訊息 → 讀懂它(用單元一的方法)→ 八成解決。沒錯誤訊息 → 進入 Step 2。</small>
+            </div>
+          </div>
+          <div class="sop__step">
+            <div class="sop__num">2</div>
+            <div class="sop__body">
+              <strong>確認「壞在前端還是後端」</strong>
+              <small>前端壞:看 Chrome Console(F12)。後端壞:看 Apps Script 執行記錄。</small>
+            </div>
+          </div>
+          <div class="sop__step">
+            <div class="sop__num">3</div>
+            <div class="sop__body">
+              <strong>用 Logger / console.log 夾擠法</strong>
+              <small>在懷疑的區段插滿 log,找出「哪一行之後就壞了」。</small>
+            </div>
+          </div>
+          <div class="sop__step">
+            <div class="sop__num">4</div>
+            <div class="sop__body">
+              <strong>形成假設</strong>
+              <small>「我懷疑是 ___ 出問題,因為 ___」</small>
+            </div>
+          </div>
+          <div class="sop__step">
+            <div class="sop__num">5</div>
+            <div class="sop__body">
+              <strong>解決</strong>
+              <small>自己看得出來 → 改。看不出來 → 用模板寫高品質 bug prompt 問 AI。</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout--key">
+          <div class="callout__icon">關鍵</div>
+          <div class="callout__body">
+            <p>解決後做一件事:<strong>理解原因</strong>。不要只問「怎麼修」,要問「為什麼會這樣」。這樣下次同類 bug 你自己就能解。</p>
+          </div>
+        </div>
+
+        <h3><span class="h3-num">§2</span>三個鐵則</h3>
+
+        <h4><em>鐵則一.</em> 一次只改一件事</h4>
+        <p>別一次改 5 個地方,出問題你不知道是哪個改壞的。<strong>改一個 → 測 → 改一個 → 測。</strong></p>
+
+        <h4><em>鐵則二.</em> 能跑的版本一定要備份</h4>
+        <p>跟 AI 開始大改之前,把當前能跑的版本複製存檔(Apps Script 有版本控制可以用)。改壞了至少能回去。</p>
+
+        <h4><em>鐵則三.</em> 小步前進,每步都跑</h4>
+        <p>AI 給你 100 行你看不懂,不如要它一次寫 10 行、跑一次,你看懂了再繼續。</p>
+
+        <div class="section__complete">
+          <button class="btn-complete" data-complete="unit4">
+            <span class="check"></span>
+            <span class="label">標記為已讀</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ TEMPLATES ============ -->
+      <section class="section" id="sec-templates" data-section="templates">
+        <div class="section__header">
+          <div class="section__number">06 — Appendix</div>
+          <h2 class="section__title">速查表 & <em>模板</em></h2>
+          <p class="section__lede">把這頁加入書籤。實戰時隨時翻回來查。</p>
+        </div>
+
+        <h3><span class="h3-num">A</span>錯誤訊息速查</h3>
+        <div class="tbl-wrap">
+        <table class="data">
+          <thead><tr><th>看到</th><th>就懷疑</th></tr></thead>
+          <tbody>
+            <tr><td><code>Cannot read properties of undefined</code></td><td>變數還沒被賦值就被使用 / Sheet 名字拼錯</td></tr>
+            <tr><td><code>X is not defined</code></td><td>名字拼錯(99%)</td></tr>
+            <tr><td><code>Unexpected token</code></td><td>括號、引號、分號沒成對</td></tr>
+            <tr><td><code>Range not found</code></td><td>儲存格範圍寫錯</td></tr>
+            <tr><td><code>Authorization required</code></td><td>權限沒給,跑 <code>onOpen</code> 或重新部署</td></tr>
+            <tr><td><code>Service invoked too many times</code></td><td>呼叫太頻繁,加 <code>Utilities.sleep()</code> 或減少呼叫</td></tr>
+            <tr><td><code>Maximum call stack exceeded</code></td><td>無限遞迴,函數呼叫自己</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <h3><span class="h3-num">B</span>Bug 回報快速模板(再貼一次)</h3>
+        <div class="template">
+<button class="btn-copy" data-copy-target="tmpl-content2">複製模板</button>
+<span id="tmpl-content2"><span class="template__label">【狀況】</span>
+專案:<span class="template__placeholder">_______</span>
+環境:<span class="template__placeholder">_______</span>
+
+<span class="template__label">【操作】</span>
+<span class="template__placeholder">_______</span>
+
+<span class="template__label">【預期】</span>
+<span class="template__placeholder">_______</span>
+
+<span class="template__label">【實際】</span>
+<span class="template__placeholder">_______</span>
+
+<span class="template__label">【錯誤訊息】</span>
+<span class="template__placeholder">_______</span>
+
+<span class="template__label">【已驗證】</span>
+- <span class="template__placeholder">_______</span>
+- <span class="template__placeholder">_______</span>
+
+<span class="template__label">【相關程式碼】</span>
+<span class="template__placeholder">_______</span>
+
+<span class="template__label">【問題】</span>
+<span class="template__placeholder">_______</span></span>
+        </div>
+
+        <h3><span class="h3-num">C</span>跟 AI 合作的 7 條金律</h3>
+        <ol>
+          <li><strong>小塊寫</strong>:一次只要 AI 寫一個功能,不要整份噴出來</li>
+          <li><strong>每步驗證</strong>:跑得起來再進下一步</li>
+          <li><strong>備份能跑的版本</strong>:大改前一定存檔</li>
+          <li><strong>加註解</strong>:請 AI 給每個函數加註解,你才看得懂</li>
+          <li><strong>不懂就問</strong>:不要照貼,看不懂就問 AI 這段在做什麼</li>
+          <li><strong>用模板回報 bug</strong>:7 元素都給齊</li>
+          <li><strong>問「為什麼」不只問「怎麼修」</strong>:理解原因才能下次自己解</li>
+        </ol>
+
+        <h3><span class="h3-num">D</span>Debug 五步 SOP(壓縮版)</h3>
+        <div class="callout callout--info">
+          <div class="callout__icon">記</div>
+          <div class="callout__body">
+            <p><strong>讀錯誤 → 分前後端 → 夾擠 Log → 形成假設 → 解決 + 理解</strong></p>
+          </div>
+        </div>
+
+        <div class="section__complete">
+          <button class="btn-complete" data-complete="templates">
+            <span class="check"></span>
+            <span class="label">標記為已讀</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ============ FINAL ============ -->
+      <div class="final-note">
+        <div class="final-note__icon">¶</div>
+        <div class="final-note__title">準備好<em>上戰場</em>了。</div>
+        <p class="final-note__body">你現在有了讀錯誤訊息、用 Logger 追資料、寫高品質 prompt、跑 Debug SOP 的能力。這五個技能,就是你跟 AI 協作的核心戰力。下一步:回去看你那份卡住的程式碼,用今天學的工具把它救起來。</p>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ===== Storage helpers (with try/catch fallback) =====
+  const STORAGE_KEY = 'debug-course-progress-v1';
+  const ALL_SECTIONS = ['intro', 'foundation', 'unit1', 'unit2', 'unit3', 'unit4', 'templates'];
+
+  function loadProgress() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      return {};
+    }
+  }
+  function saveProgress(p) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+    } catch (e) {}
+  }
+
+  let progress = loadProgress();
+
+  // ===== Update UI based on progress =====
+  function updateProgressUI() {
+    const completed = ALL_SECTIONS.filter(s => progress[s]).length;
+    const total = ALL_SECTIONS.length;
+    const pct = Math.round((completed / total) * 100);
+
+    document.getElementById('topProgress').style.width = pct + '%';
+    document.getElementById('sideProgress').style.width = pct + '%';
+    document.getElementById('completedCount').textContent = completed;
+    document.getElementById('pctLabel').textContent = pct + '%';
+
+    // TOC checks
+    document.querySelectorAll('.toc__link').forEach(link => {
+      const sec = link.dataset.section;
+      if (progress[sec]) {
+        link.classList.add('completed');
+      } else {
+        link.classList.remove('completed');
+      }
+    });
+
+    // Complete buttons
+    document.querySelectorAll('.btn-complete').forEach(btn => {
+      const sec = btn.dataset.complete;
+      const label = btn.querySelector('.label');
+      if (progress[sec]) {
+        btn.classList.add('completed');
+        if (label) label.textContent = '已完成 ✓';
+      } else {
+        btn.classList.remove('completed');
+        if (label) label.textContent = '標記為已讀';
+      }
+    });
+  }
+
+  // ===== Complete buttons =====
+  document.querySelectorAll('.btn-complete').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sec = btn.dataset.complete;
+      progress[sec] = !progress[sec];
+      saveProgress(progress);
+      updateProgressUI();
+    });
+  });
+
+  // ===== Reveal practice answers =====
+  document.querySelectorAll('.btn-reveal').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.reveal;
+      const ans = document.getElementById(id);
+      if (ans) {
+        ans.classList.toggle('revealed');
+        btn.textContent = ans.classList.contains('revealed') ? '收起答案' : '先想 30 秒,再點開答案';
+      }
+    });
+  });
+
+  // ===== Copy buttons =====
+  document.querySelectorAll('.btn-copy').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.copyTarget;
+      const target = document.getElementById(targetId);
+      if (!target) return;
+      const text = target.innerText;
+      const originalText = btn.textContent;
+      const fallback = () => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); } catch(e) {}
+        document.body.removeChild(ta);
+      };
+      const onSuccess = () => {
+        btn.classList.add('copied');
+        btn.textContent = '已複製 ✓';
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.textContent = originalText;
+        }, 1800);
+      };
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(onSuccess, () => { fallback(); onSuccess(); });
+      } else {
+        fallback();
+        onSuccess();
+      }
+    });
+  });
+
+  // ===== Reset progress =====
+  document.getElementById('btnReset').addEventListener('click', () => {
+    if (confirm('確定要重設所有進度嗎?')) {
+      progress = {};
+      saveProgress(progress);
+      updateProgressUI();
+    }
+  });
+
+  // ===== Mobile menu =====
+  const menuBtn = document.getElementById('menuBtn');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+
+  function openSidebar() {
+    sidebar.classList.add('open');
+    overlay.classList.add('active');
+  }
+  function closeSidebar() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+  }
+
+  menuBtn.addEventListener('click', openSidebar);
+  overlay.addEventListener('click', closeSidebar);
+
+  // Close sidebar after TOC click on mobile
+  document.querySelectorAll('.toc__link').forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 960) closeSidebar();
+    });
+  });
+
+  // ===== Active section highlight on scroll =====
+  const sections = ALL_SECTIONS.map(s => document.getElementById('sec-' + s)).filter(Boolean);
+  const tocLinks = document.querySelectorAll('.toc__link');
+
+  function updateActive() {
+    const offset = 120;
+    let current = sections[0]?.dataset.section;
+    sections.forEach(sec => {
+      const rect = sec.getBoundingClientRect();
+      if (rect.top - offset <= 0) {
+        current = sec.dataset.section;
+      }
+    });
+    tocLinks.forEach(link => {
+      link.classList.toggle('active', link.dataset.section === current);
+    });
+  }
+
+  let scrollTimer;
+  window.addEventListener('scroll', () => {
+    if (scrollTimer) cancelAnimationFrame(scrollTimer);
+    scrollTimer = requestAnimationFrame(updateActive);
+  });
+
+  // ===== Init =====
+  updateProgressUI();
+  updateActive();
+})();
+</script>
+
+</body>
+</html>
