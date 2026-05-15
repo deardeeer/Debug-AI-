@@ -1,0 +1,2663 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Debug & AI 協作速通筆記</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:           #F5F6F8;
+  --bg-soft:      #ECEEF2;
+  --surface:      #FFFFFF;
+  --surface-2:    #F9FAFB;
+  --border:       #E2E5EA;
+  --border-strong:#CFD3DB;
+  --ink:          #1A1D24;
+  --ink-soft:     #3F4550;
+  --ink-muted:    #6B7280;
+  --ink-faint:    #9CA3AF;
+
+  --brand:        #2C4A7C;
+  --brand-soft:   #4A6BA8;
+  --brand-bg:     #EAF0F9;
+
+  --success:      #15803D;
+  --success-bg:   #E6F4EA;
+  --success-soft: #4CAF7C;
+
+  --danger:       #B91C1C;
+  --danger-bg:    #FCEBEA;
+  --danger-soft:  #E25555;
+
+  --warn:         #B45309;
+  --warn-bg:      #FDF3E0;
+
+  --code-bg:      #1E2128;
+  --code-text:    #D4D9E2;
+
+  --sans: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', Consolas, monospace;
+
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.08);
+
+  --sidebar-w: 280px;
+  --max-read: 740px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.8;
+  -webkit-font-smoothing: antialiased;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+/* Progress bar */
+.progress-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--bg-soft);
+  z-index: 100;
+}
+.progress-bar__fill {
+  height: 100%;
+  background: var(--brand);
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+/* Mobile topbar */
+.topbar {
+  display: none;
+  position: sticky;
+  top: 3px;
+  z-index: 50;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 18px;
+  align-items: center;
+  justify-content: space-between;
+}
+.topbar__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.topbar__title span { color: var(--brand); }
+.topbar__menu {
+  background: var(--ink);
+  color: var(--surface);
+  border: none;
+  width: 38px; height: 38px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+/* Layout */
+.layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 32px 22px 32px 28px;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+}
+.sidebar__brand { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+.sidebar__brand-eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--brand);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.sidebar__brand-title {
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 700;
+  color: var(--ink);
+}
+.sidebar__brand-title span { color: var(--brand); }
+
+.progress-pill {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 22px;
+}
+.progress-pill__label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.progress-pill__count {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+}
+.progress-pill__count span { color: var(--brand); }
+.progress-pill__total {
+  font-size: 13px;
+  color: var(--ink-muted);
+  font-weight: 400;
+  margin-left: 2px;
+}
+.progress-pill__track {
+  margin-top: 10px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-pill__fill {
+  height: 100%;
+  background: var(--brand);
+  width: 0%;
+  transition: width 0.4s ease;
+  border-radius: 2px;
+}
+
+.toc { list-style: none; }
+.toc__group { margin-bottom: 16px; }
+.toc__group-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--ink-faint);
+  margin-bottom: 6px;
+  padding-left: 4px;
+  font-weight: 500;
+}
+.toc__item { list-style: none; margin: 2px 0; }
+.toc__link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  font-weight: 400;
+  transition: all 0.15s ease;
+  border-left: 2px solid transparent;
+}
+.toc__link:hover { background: var(--bg-soft); color: var(--ink); }
+.toc__link.active {
+  background: var(--brand-bg);
+  color: var(--brand);
+  font-weight: 600;
+  border-left-color: var(--brand);
+}
+.toc__check {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  background: transparent;
+}
+.toc__link.completed .toc__check {
+  background: var(--success);
+  border-color: var(--success);
+}
+.toc__link.completed .toc__check::after {
+  content: "✓";
+  color: var(--surface);
+  font-weight: 700;
+  font-size: 10px;
+}
+.toc__link.completed { color: var(--ink-muted); }
+
+.sidebar__footer { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border); }
+.btn-reset {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--ink-muted);
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+.btn-reset:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* Main */
+.main {
+  padding: 56px 60px 100px;
+  min-width: 0;
+}
+.main__inner {
+  max-width: var(--max-read);
+  margin: 0 auto;
+}
+
+/* Hero */
+.hero {
+  padding-bottom: 48px;
+  margin-bottom: 56px;
+  border-bottom: 1px solid var(--border);
+}
+.hero__eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  color: var(--brand);
+  margin-bottom: 20px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hero__eyebrow::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.hero__title {
+  font-size: clamp(34px, 5.5vw, 54px);
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  margin-bottom: 18px;
+  color: var(--ink);
+}
+.hero__title span { color: var(--brand); }
+.hero__subtitle {
+  font-size: 19px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  margin-bottom: 28px;
+  font-weight: 400;
+}
+.hero__meta {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+.hero__meta-item { display: flex; flex-direction: column; gap: 2px; }
+.hero__meta-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--ink-faint);
+  font-weight: 500;
+}
+.hero__meta-value {
+  font-size: 15px;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* Section */
+.section { margin-bottom: 72px; }
+.section__header { margin-bottom: 28px; }
+.section__number {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: var(--brand);
+  margin-bottom: 10px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.section__number::before {
+  content: "";
+  width: 28px;
+  height: 1px;
+  background: var(--brand);
+}
+.section__title {
+  font-size: clamp(26px, 3.5vw, 36px);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+  color: var(--ink);
+}
+.section__title span { color: var(--brand); }
+.section__lede {
+  font-size: 17px;
+  color: var(--ink-soft);
+  line-height: 1.65;
+  margin-top: 10px;
+  font-weight: 400;
+}
+
+/* Content */
+.main p {
+  margin: 0 0 18px;
+  font-size: 16px;
+  line-height: 1.85;
+}
+.main p strong, .main li strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+.main h3 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 44px 0 16px;
+  color: var(--ink);
+  letter-spacing: -0.005em;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.main h3 .h3-num {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--brand);
+  margin-right: 12px;
+  font-weight: 600;
+  vertical-align: 2px;
+}
+.main h4 {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 28px 0 12px;
+  color: var(--ink);
+}
+.main ul, .main ol { margin: 0 0 22px; padding-left: 22px; }
+.main li { margin-bottom: 6px; line-height: 1.8; }
+.main ul li::marker { color: var(--brand); }
+.main ol li::marker { color: var(--brand); font-family: var(--mono); font-weight: 600; }
+
+/* Inline code */
+.main code {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  background: var(--bg-soft);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--brand);
+  border: 1px solid var(--border);
+  font-weight: 500;
+}
+
+/* Code blocks */
+.codeblock {
+  background: var(--code-bg);
+  color: var(--code-text);
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin: 20px 0;
+  overflow-x: auto;
+  position: relative;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.75;
+  box-shadow: var(--shadow-md);
+}
+.codeblock::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: rgba(212, 217, 226, 0.4);
+}
+.codeblock pre { margin: 0; white-space: pre; font-family: inherit; }
+.codeblock pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+.tk-keyword { color: #C792EA; }
+.tk-string  { color: #C3E88D; }
+.tk-comment { color: #6B7280; }
+.tk-fn      { color: #82AAFF; }
+.tk-num     { color: #F78C6C; }
+.tk-tag     { color: #F07178; }
+
+.btn-copy {
+  position: absolute;
+  top: 10px;
+  right: 70px;
+  background: rgba(212, 217, 226, 0.08);
+  color: rgba(212, 217, 226, 0.7);
+  border: 1px solid rgba(212, 217, 226, 0.15);
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-family: var(--mono);
+  font-size: 10px;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  transition: all 0.2s ease;
+}
+.btn-copy:hover {
+  background: rgba(212, 217, 226, 0.15);
+  color: var(--surface);
+}
+.btn-copy.copied {
+  background: var(--success);
+  color: var(--surface);
+  border-color: var(--success);
+}
+
+/* Callouts */
+.callout {
+  border-radius: 8px;
+  padding: 18px 22px;
+  margin: 22px 0;
+  display: flex;
+  gap: 14px;
+  border-left: 3px solid;
+  background: var(--surface);
+}
+.callout__icon {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border-radius: 4px;
+  height: fit-content;
+}
+.callout__body { flex: 1; }
+.callout__body p:last-child { margin-bottom: 0; }
+
+.callout--info { border-left-color: var(--brand); background: var(--brand-bg); }
+.callout--info .callout__icon { background: var(--brand); color: var(--surface); }
+.callout--tip { border-left-color: var(--warn); background: var(--warn-bg); }
+.callout--tip .callout__icon { background: var(--warn); color: var(--surface); }
+.callout--warn { border-left-color: var(--danger); background: var(--danger-bg); }
+.callout--warn .callout__icon { background: var(--danger); color: var(--surface); }
+.callout--key { border-left-color: var(--ink); background: var(--bg-soft); }
+.callout--key .callout__icon { background: var(--ink); color: var(--surface); }
+
+/* Compare */
+.compare { margin: 22px 0; }
+.compare__item {
+  border-left: 3px solid;
+  padding: 14px 18px;
+  margin-bottom: 10px;
+  background: var(--surface);
+  border-radius: 0 6px 6px 0;
+}
+.compare__label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.compare--bad { border-left-color: var(--danger); }
+.compare--bad .compare__label { color: var(--danger); }
+.compare--ok  { border-left-color: var(--warn); }
+.compare--ok  .compare__label { color: var(--warn); }
+.compare--good { border-left-color: var(--success); }
+.compare--good .compare__label { color: var(--success); }
+
+/* Tables */
+.tbl-wrap {
+  margin: 22px 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+table.data th {
+  background: var(--ink);
+  color: var(--surface);
+  font-weight: 500;
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 11.5px;
+  letter-spacing: 0.05em;
+  font-family: var(--mono);
+}
+table.data td {
+  padding: 11px 14px;
+  border-top: 1px solid var(--border);
+  vertical-align: top;
+  line-height: 1.6;
+}
+table.data tr:nth-child(even) td { background: var(--surface-2); }
+table.data code { font-size: 12px; background: var(--bg-soft); }
+
+/* SOP */
+.sop {
+  margin: 24px 0;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.sop__step {
+  display: flex;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px dashed var(--border);
+  align-items: flex-start;
+}
+.sop__step:last-child { border-bottom: none; }
+.sop__num {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--brand);
+  color: var(--surface);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-weight: 700;
+}
+.sop__body strong { color: var(--ink); }
+.sop__body small {
+  display: block;
+  margin-top: 3px;
+  color: var(--ink-muted);
+  font-size: 13.5px;
+}
+
+/* Template */
+.template {
+  background: var(--code-bg);
+  color: var(--code-text);
+  border-radius: 8px;
+  padding: 22px 24px;
+  margin: 22px 0;
+  position: relative;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.95;
+  white-space: pre-wrap;
+  box-shadow: var(--shadow-md);
+}
+.template__placeholder { color: #6B7280; }
+.template__label { color: #FFCB6B; font-weight: 700; }
+
+/* ===========================
+   QUIZ SYSTEM
+   =========================== */
+.quiz-zone {
+  margin: 40px 0 20px;
+  background: var(--surface);
+  border: 2px solid var(--brand);
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+}
+.quiz-zone__header {
+  background: var(--brand);
+  color: var(--surface);
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.quiz-zone__title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.quiz-zone__title::before {
+  content: "✓";
+  font-size: 14px;
+  background: rgba(255,255,255,0.2);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.quiz-zone__progress {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  background: rgba(255,255,255,0.15);
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+.quiz-zone__body { padding: 24px 26px; }
+
+.quiz {
+  padding: 22px 0;
+  border-bottom: 1px solid var(--border);
+}
+.quiz:last-child { border-bottom: none; padding-bottom: 0; }
+.quiz:first-child { padding-top: 0; }
+
+.quiz__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.quiz__type-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--brand-bg);
+  color: var(--brand);
+  font-weight: 600;
+  flex-shrink: 0;
+  height: fit-content;
+}
+.quiz__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  flex: 1;
+}
+.quiz__title-num {
+  font-family: var(--mono);
+  color: var(--brand);
+  margin-right: 8px;
+}
+.quiz__status {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.quiz.solved .quiz__status::after { content: "✓"; color: var(--success); }
+
+.quiz__prompt {
+  margin-bottom: 16px;
+  color: var(--ink-soft);
+  font-size: 15px;
+  line-height: 1.75;
+}
+.quiz__prompt p { margin-bottom: 10px; }
+.quiz__prompt p:last-child { margin-bottom: 0; }
+
+/* Multiple choice */
+.quiz__options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.quiz__option {
+  background: var(--surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 12px 16px;
+  text-align: left;
+  font-family: var(--sans);
+  font-size: 14.5px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  line-height: 1.6;
+}
+.quiz__option:hover:not(.disabled) {
+  border-color: var(--brand);
+  background: var(--brand-bg);
+  color: var(--ink);
+}
+.quiz__option-letter {
+  font-family: var(--mono);
+  font-weight: 700;
+  color: var(--brand);
+  font-size: 13px;
+  flex-shrink: 0;
+  width: 18px;
+}
+.quiz__option.correct {
+  border-color: var(--success);
+  background: var(--success-bg);
+  color: var(--success);
+  font-weight: 500;
+}
+.quiz__option.correct .quiz__option-letter { color: var(--success); }
+.quiz__option.correct::after {
+  content: "✓ 正確";
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  background: var(--success);
+  color: var(--surface);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.quiz__option.wrong {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.quiz__option.wrong .quiz__option-letter { color: var(--danger); }
+.quiz__option.wrong::after {
+  content: "✗";
+  margin-left: auto;
+  color: var(--danger);
+  font-weight: 700;
+}
+.quiz__option.disabled {
+  cursor: default;
+  pointer-events: none;
+}
+.quiz__option.disabled:not(.correct):not(.wrong) {
+  opacity: 0.5;
+}
+
+/* Feedback */
+.quiz__feedback {
+  display: none;
+  margin-top: 12px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.7;
+  border-left: 3px solid;
+}
+.quiz__feedback.show { display: block; animation: fadeIn 0.25s ease; }
+.quiz__feedback--correct {
+  background: var(--success-bg);
+  border-left-color: var(--success);
+  color: var(--ink);
+}
+.quiz__feedback--wrong {
+  background: var(--danger-bg);
+  border-left-color: var(--danger);
+  color: var(--ink);
+}
+.quiz__feedback-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  margin-bottom: 6px;
+  display: block;
+}
+.quiz__feedback--correct .quiz__feedback-label { color: var(--success); }
+.quiz__feedback--wrong .quiz__feedback-label { color: var(--danger); }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Match quiz */
+.match {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.match__col-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--ink-muted);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.match__items { display: flex; flex-direction: column; gap: 6px; }
+.match__item {
+  background: var(--surface);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  transition: all 0.15s ease;
+  text-align: left;
+  font-family: var(--sans);
+  position: relative;
+}
+.match__item:hover:not(.matched):not(.disabled) {
+  border-color: var(--brand);
+  background: var(--brand-bg);
+}
+.match__item.selected {
+  border-color: var(--brand);
+  background: var(--brand-bg);
+  color: var(--brand);
+  font-weight: 600;
+}
+.match__item.matched {
+  border-color: var(--success);
+  background: var(--success-bg);
+  color: var(--success);
+  font-weight: 500;
+  cursor: default;
+}
+.match__item.matched::after {
+  content: attr(data-match-num);
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  background: var(--success);
+  color: var(--surface);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-family: var(--mono);
+}
+.match__item.flash-wrong {
+  animation: shake 0.4s ease;
+  border-color: var(--danger);
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* Debug code (click-the-line) */
+.debug-code {
+  background: var(--code-bg);
+  border-radius: 8px;
+  padding: 12px 0;
+  margin: 14px 0;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+  overflow-x: auto;
+}
+.debug-code__line {
+  padding: 4px 18px 4px 50px;
+  position: relative;
+  color: var(--code-text);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  white-space: pre;
+}
+.debug-code__line::before {
+  content: attr(data-line);
+  position: absolute;
+  left: 0;
+  width: 38px;
+  text-align: right;
+  color: #6B7280;
+  font-size: 11px;
+  padding-right: 12px;
+  border-right: 1px solid rgba(255,255,255,0.05);
+}
+.debug-code__line:hover:not(.solved) {
+  background: rgba(74, 107, 168, 0.15);
+}
+.debug-code__line.wrong-pick {
+  background: rgba(185, 28, 28, 0.25);
+  animation: shake 0.4s ease;
+}
+.debug-code__line.correct-pick {
+  background: rgba(21, 128, 61, 0.3);
+}
+.debug-code__line.correct-pick::after {
+  content: "← 找到了!";
+  color: #4CAF7C;
+  margin-left: 12px;
+  font-size: 11px;
+}
+
+/* Practical (text input) */
+.quiz__textarea {
+  width: 100%;
+  min-height: 100px;
+  background: var(--surface-2);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--ink);
+  resize: vertical;
+  line-height: 1.65;
+  margin-bottom: 12px;
+}
+.quiz__textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+  background: var(--surface);
+}
+.quiz__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.btn {
+  background: var(--ink);
+  color: var(--surface);
+  border: none;
+  padding: 9px 18px;
+  border-radius: 7px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn:hover { background: var(--brand); }
+.btn--outline {
+  background: var(--surface);
+  color: var(--ink-soft);
+  border: 1.5px solid var(--border-strong);
+}
+.btn--outline:hover {
+  background: var(--bg-soft);
+  border-color: var(--ink);
+  color: var(--ink);
+}
+.btn--success { background: var(--success); }
+.btn--success:hover { background: #0E5C2A; }
+.btn--danger-outline {
+  background: var(--surface);
+  border: 1.5px solid var(--border-strong);
+  color: var(--ink-soft);
+}
+.btn--danger-outline:hover { border-color: var(--danger); color: var(--danger); }
+
+.quiz__answer {
+  display: none;
+  background: var(--bg-soft);
+  border-radius: 8px;
+  padding: 16px 18px;
+  border-left: 3px solid var(--success);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.quiz__answer.show { display: block; animation: fadeIn 0.25s ease; }
+.quiz__answer-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--success);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.quiz__answer ol, .quiz__answer ul { margin-left: 18px; margin-top: 8px; }
+.quiz__answer p { margin-bottom: 8px; }
+.quiz__answer p:last-child { margin-bottom: 0; }
+.quiz__answer code { font-size: 12.5px; }
+
+.self-check {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border-strong);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.self-check__label {
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin-right: 4px;
+}
+
+/* Section complete (auto) */
+.section__complete {
+  margin-top: 36px;
+  padding: 22px 24px;
+  background: var(--surface);
+  border: 1.5px dashed var(--border-strong);
+  border-radius: 12px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+.section__complete.passed {
+  background: var(--success-bg);
+  border-color: var(--success);
+  border-style: solid;
+}
+.section__complete-status {
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin-bottom: 10px;
+  font-family: var(--mono);
+  letter-spacing: 0.1em;
+}
+.section__complete.passed .section__complete-status { color: var(--success); }
+.section__complete-msg {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.section__complete.passed .section__complete-msg { color: var(--success); }
+.btn-complete {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1.5px solid var(--ink);
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 12px;
+}
+.btn-complete:hover { background: var(--ink); color: var(--surface); }
+.btn-complete.completed {
+  background: var(--success);
+  border-color: var(--success);
+  color: var(--surface);
+  cursor: default;
+}
+
+/* Final */
+.final-note {
+  margin-top: 56px;
+  padding: 36px 32px;
+  background: var(--surface);
+  border-radius: 14px;
+  text-align: center;
+  border: 1px solid var(--border);
+}
+.final-note__icon {
+  font-size: 36px;
+  color: var(--brand);
+  font-weight: 900;
+  margin-bottom: 12px;
+}
+.final-note__title {
+  font-size: 24px;
+  font-weight: 800;
+  margin-bottom: 10px;
+  color: var(--ink);
+}
+.final-note__title span { color: var(--brand); }
+.final-note__body {
+  color: var(--ink-soft);
+  font-size: 15.5px;
+  max-width: 480px;
+  margin: 0 auto;
+  line-height: 1.75;
+}
+
+/* Overlay */
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 40;
+}
+.overlay.active { display: block; }
+
+/* Responsive */
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; }
+  .topbar { display: flex; }
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    width: 86%;
+    max-width: 320px;
+    height: 100vh;
+    z-index: 60;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .main { padding: 28px 20px 80px; }
+  .hero { padding-bottom: 32px; margin-bottom: 36px; }
+  .section { margin-bottom: 52px; }
+  .quiz-zone__body { padding: 18px 18px; }
+  .quiz-zone__header { padding: 12px 16px; }
+  .quiz { padding: 18px 0; }
+  .codeblock, .template { padding: 14px 16px; font-size: 12px; }
+  .debug-code { font-size: 11.5px; }
+  .debug-code__line { padding-left: 44px; }
+  .debug-code__line::before { width: 32px; font-size: 10px; }
+  .match { grid-template-columns: 1fr; gap: 8px; }
+  .match__col + .match__col { margin-top: 8px; }
+}
+@media (max-width: 480px) {
+  body { font-size: 15.5px; }
+  .main p { font-size: 15.5px; }
+  .hero__subtitle { font-size: 16.5px; }
+  .main h3 { font-size: 19px; }
+  table.data { font-size: 12.5px; }
+  table.data th, table.data td { padding: 9px 10px; }
+}
+</style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-bar__fill" id="topProgress"></div></div>
+
+<div class="topbar">
+  <div class="topbar__title">Debug & AI <span>協作筆記</span></div>
+  <button class="topbar__menu" id="menuBtn" aria-label="開啟章節">☰</button>
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<div class="layout">
+  <!-- =========== SIDEBAR =========== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar__brand">
+      <div class="sidebar__brand-eyebrow">FIELD NOTEBOOK · 2026</div>
+      <div class="sidebar__brand-title">Debug & <span>AI 協作</span><br>速通筆記</div>
+    </div>
+
+    <div class="progress-pill">
+      <div class="progress-pill__label">
+        <span>學習進度</span>
+        <span id="pctLabel">0%</span>
+      </div>
+      <div class="progress-pill__count"><span id="completedCount">0</span><span class="progress-pill__total"> / 6 章節通過</span></div>
+      <div class="progress-pill__track"><div class="progress-pill__fill" id="sideProgress"></div></div>
+    </div>
+
+    <nav class="toc">
+      <div class="toc__group">
+        <div class="toc__group-label">課前準備</div>
+        <li class="toc__item"><a class="toc__link" href="#sec-intro" data-section="intro">
+          <span class="toc__check"></span><span>課程簡介與心法</span>
+        </a></li>
+        <li class="toc__item"><a class="toc__link" href="#sec-foundation" data-section="foundation">
+          <span class="toc__check"></span><span>必懂的最小概念集</span>
+        </a></li>
+      </div>
+      <div class="toc__group">
+        <div class="toc__group-label">四大單元</div>
+        <li class="toc__item"><a class="toc__link" href="#sec-unit1" data-section="unit1">
+          <span class="toc__check"></span><span>1 ・ 錯誤訊息怎麼讀</span>
+        </a></li>
+        <li class="toc__item"><a class="toc__link" href="#sec-unit2" data-section="unit2">
+          <span class="toc__check"></span><span>2 ・ Logger 與 console</span>
+        </a></li>
+        <li class="toc__item"><a class="toc__link" href="#sec-unit3" data-section="unit3">
+          <span class="toc__check"></span><span>3 ・ 高品質 Bug Prompt</span>
+        </a></li>
+        <li class="toc__item"><a class="toc__link" href="#sec-unit4" data-section="unit4">
+          <span class="toc__check"></span><span>4 ・ Debug SOP</span>
+        </a></li>
+      </div>
+      <div class="toc__group">
+        <div class="toc__group-label">附錄</div>
+        <li class="toc__item"><a class="toc__link" href="#sec-templates" data-section="templates">
+          <span class="toc__check"></span><span>速查表 & 模板</span>
+        </a></li>
+      </div>
+    </nav>
+
+    <div class="sidebar__footer">
+      <button class="btn-reset" id="btnReset">重設所有進度</button>
+    </div>
+  </aside>
+
+  <!-- =========== MAIN =========== -->
+  <main class="main">
+    <div class="main__inner">
+
+      <!-- HERO -->
+      <header class="hero">
+        <div class="hero__eyebrow">A PERSONAL FIELD NOTEBOOK</div>
+        <h1 class="hero__title">當<span>偵探</span>,<br>不要當<span>通靈師</span>。</h1>
+        <p class="hero__subtitle">給每位卡在 AI 寫的 code 裡撞牆,卻不知道從哪修起的人。這是一本可以慢慢讀、邊讀邊測驗的 Debug 與 AI 協作速通筆記。</p>
+        <div class="hero__meta">
+          <div class="hero__meta-item">
+            <span class="hero__meta-label">FORMAT</span>
+            <span class="hero__meta-value">6 章 + 互動測驗</span>
+          </div>
+          <div class="hero__meta-item">
+            <span class="hero__meta-label">PACE</span>
+            <span class="hero__meta-value">每天 1 章,一週讀完</span>
+          </div>
+          <div class="hero__meta-item">
+            <span class="hero__meta-label">FOR</span>
+            <span class="hero__meta-value">Apps Script 開發者</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ========== INTRO ========== -->
+      <section class="section" id="sec-intro" data-section="intro">
+        <div class="section__header">
+          <div class="section__number">00 — PREFACE</div>
+          <h2 class="section__title">課程<span>簡介</span>與<span>心法</span></h2>
+          <p class="section__lede">在開始之前,先弄清楚一件事:你不缺程式能力,你缺的是 Debug 的方法。</p>
+        </div>
+
+        <h3><span class="h3-num">§1</span>你真正的問題</h3>
+        <p>你的問題不是「不會寫程式」。<strong>你真正的問題是:AI 幫你寫了一坨程式碼,跑起來有 bug,但你看不懂程式碼,所以不知道怎麼跟 AI 描述問題、也不知道哪裡該重寫。</strong></p>
+        <p>這是現在很多人遇到的「Vibe Coding 撞牆期」。重新規劃架構不會解決這個問題,因為:</p>
+        <ul>
+          <li>就算給你一個完美架構,AI 寫出來的程式碼還是會有 bug(這是必然)</li>
+          <li>你還是看不懂、不知道怎麼描述 bug</li>
+          <li>你只會從「在亂的程式碼上撞牆」變成「在乾淨的程式碼上撞牆」</li>
+        </ul>
+
+        <div class="callout callout--key">
+          <div class="callout__icon">核心</div>
+          <div class="callout__body">
+            <p>你真正需要的是 <strong>Debug 能力</strong> 跟 <strong>跟 AI 協作的能力</strong>。這兩個能力跟「會不會寫程式」是兩回事,可以在 3-5 小時內學會基本款。</p>
+          </div>
+        </div>
+
+        <h3><span class="h3-num">§2</span>工程師的真實 Debug 流程</h3>
+        <p>工程師面對 bug 的真實過程,不是「天才靈光一閃就知道哪裡錯」,而是:</p>
+        <div class="callout callout--info">
+          <div class="callout__icon">心法</div>
+          <div class="callout__body">
+            <p><strong>假設 → 驗證 → 縮小範圍 → 假設 → 驗證 → 縮小範圍 → 抓到犯人。</strong></p>
+            <p>就像偵探辦案。你今天學的就是當偵探的三個工具。</p>
+          </div>
+        </div>
+
+        <h3><span class="h3-num">§3</span>怎麼讀這本筆記</h3>
+        <ul>
+          <li><strong>每天讀一章</strong>,讀完做完測驗就標記通過,看著進度條增加會有動力</li>
+          <li><strong>測驗一定要做</strong>,答對才能標記通過——這是驗收你真的學會</li>
+          <li><strong>模板和速查表存起來</strong>,以後每次問 bug 都用</li>
+          <li><strong>進度自動保存</strong>,本子會記得你讀到哪</li>
+        </ul>
+
+        <!-- INTRO QUIZ -->
+        <div class="quiz-zone" data-quiz-zone="intro" data-required="1">
+          <div class="quiz-zone__header">
+            <div class="quiz-zone__title">本章測驗</div>
+            <div class="quiz-zone__progress" data-progress-label>0 / 1 答對</div>
+          </div>
+          <div class="quiz-zone__body">
+
+            <!-- Q1: MC -->
+            <div class="quiz" data-quiz="i1" data-type="mc" data-correct="c">
+              <div class="quiz__head">
+                <span class="quiz__type-tag">選擇題</span>
+                <h4 class="quiz__title"><span class="quiz__title-num">Q1.</span>根據這本筆記,你目前最該優先學的是?</h4>
+                <span class="quiz__status"></span>
+              </div>
+              <div class="quiz__options">
+                <button class="quiz__option" data-opt="a"><span class="quiz__option-letter">A</span><span>重新規劃整個網頁架構</span></button>
+                <button class="quiz__option" data-opt="b"><span class="quiz__option-letter">B</span><span>上完整的 HTML / CSS / JavaScript 課程</span></button>
+                <button class="quiz__option" data-opt="c"><span class="quiz__option-letter">C</span><span>Debug 能力跟跟 AI 協作的能力</span></button>
+                <button class="quiz__option" data-opt="d"><span class="quiz__option-letter">D</span><span>換一個更厲害的 AI 助手</span></button>
+              </div>
+              <div class="quiz__feedback"></div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="section__complete" data-complete-zone="intro">
+          <div class="section__complete-status">尚未通過</div>
+          <div class="section__complete-msg">完成上方測驗即可自動通過本章</div>
+        </div>
+      </section>
+
+      <!-- ========== FOUNDATION ========== -->
+      <section class="section" id="sec-foundation" data-section="foundation">
+        <div class="section__header">
+          <div class="section__number">01 — FOUNDATION</div>
+          <h2 class="section__title">必懂的<span>最小概念集</span></h2>
+          <p class="section__lede">不用上 HTML/CSS/JS 完整課程。你只需要這五件事。</p>
+        </div>
+
+        <h3><span class="h3-num">§1</span>三個檔案的分工</h3>
+        <p>Apps Script + Sheets 網頁就是這三個檔案的合作:</p>
+
+        <div class="codeblock" data-lang="ARCHITECTURE">
+<pre><span class="tk-comment"># 你的網頁 = 三個檔案合作</span>
+
+├── Index.html       <span class="tk-comment">← 畫面長什麼樣(骨架 + 樣式 + 按鈕)</span>
+├── Code.gs          <span class="tk-comment">← 後端邏輯(寫資料到 Sheets、讀日曆)</span>
+└── Google Sheet     <span class="tk-comment">← 資料庫(所有記錄存在這)</span></pre>
+        </div>
+
+        <h3><span class="h3-num">§2</span>資料怎麼流動</h3>
+        <div class="codeblock" data-lang="DATA FLOW">
+<pre>你在手機點「開始」按鈕
+   ↓
+Index.html 的 JavaScript 接到點擊
+   ↓
+呼叫 Code.gs 裡的函數(例如 startTask)
+   ↓
+Code.gs 把資料寫進 Google Sheet
+   ↓
+回傳「成功」訊息給 Index.html
+   ↓
+畫面更新,顯示「任務進行中」</pre>
+        </div>
+
+        <h3><span class="h3-num">§3</span>三種程式語言各管什麼</h3>
+        <div class="tbl-wrap">
+        <table class="data">
+          <thead><tr><th>語言</th><th>在哪個檔案</th><th>負責什麼</th><th>比喻</th></tr></thead>
+          <tbody>
+            <tr><td><code>HTML</code></td><td>Index.html</td><td>畫面結構</td><td>房子的骨架</td></tr>
+            <tr><td><code>CSS</code></td><td>Index.html</td><td>外觀樣式</td><td>油漆、家具</td></tr>
+            <tr><td><code>JavaScript</code></td><td>Index.html + Code.gs</td><td>互動邏輯</td><td>電器、開關</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <h3><span class="h3-num">§4</span>「前端」與「後端」</h3>
+        <ul>
+          <li><strong>前端</strong>:使用者看到的東西。在 Index.html 裡執行,跑在你的<strong>瀏覽器</strong>。</li>
+          <li><strong>後端</strong>:使用者看不到的處理。在 Code.gs 裡執行,跑在<strong>Google 的伺服器</strong>。</li>
+        </ul>
+        <p>為什麼這個重要?因為 <strong>debug 前你要先判斷「壞在前端還是後端」</strong>,工具不一樣、看訊息的地方也不一樣。</p>
+
+        <h3><span class="h3-num">§5</span>跟 AI 協作的鐵則</h3>
+        <div class="callout callout--warn">
+          <div class="callout__icon">鐵則</div>
+          <div class="callout__body">
+            <p><strong>讓 AI 幫你寫小塊、每次寫完都驗證。</strong></p>
+          </div>
+        </div>
+        <div class="compare">
+          <div class="compare__item compare--bad">
+            <div class="compare__label">✘ 錯誤示範</div>
+            <p style="margin:0">「幫我寫一個時間追蹤網頁」→ AI 噴 500 行 → 跑不起來 → 你不知從哪修起。</p>
+          </div>
+          <div class="compare__item compare--good">
+            <div class="compare__label">✓ 正確示範</div>
+            <p style="margin:0">「先寫一個按鈕,點下去印 hello」→ 跑通 → 「改成印當前時間」→ 跑通 → 「現在寫進 Sheet」→ 跑通…</p>
+          </div>
+        </div>
+
+        <!-- FOUNDATION QUIZ -->
+        <div class="quiz-zone" data-quiz-zone="foundation" data-required="2">
+          <div class="quiz-zone__header">
+            <div class="quiz-zone__title">本章測驗</div>
+            <div class="quiz-zone__progress" data-progress-label>0 / 2 答對</div>
+          </div>
+          <div class="quiz-zone__body">
+
+            <!-- Q1: 配對 -->
+            <div class="quiz" data-quiz="f1" data-type="match" data-pairs='[["fa","fb1"],["fc","fb2"],["fd","fb3"],["fe","fb4"]]'>
+              <div class="quiz__head">
+                <span class="quiz__type-tag">配對題</span>
+                <h4 class="quiz__title"><span class="quiz__title-num">Q1.</span>把「角色」配到「職責」</h4>
+                <span class="quiz__status"></span>
+              </div>
+              <div class="quiz__prompt"><p>點左邊任一項,再點右邊它的對應項。配對正確會鎖定變綠。</p></div>
+              <div class="match">
+                <div class="match__col">
+                  <div class="match__col-label">角色</div>
+                  <div class="match__items">
+                    <button class="match__item" data-side="L" data-id="fa">HTML</button>
+                    <button class="match__item" data-side="L" data-id="fc">CSS</button>
+                    <button class="match__item" data-side="L" data-id="fd">Code.gs</button>
+                    <button class="match__item" data-side="L" data-id="fe">Google Sheet</button>
+                  </div>
+                </div>
+                <div class="match__col">
+                  <div class="match__col-label">職責</div>
+                  <div class="match__items">
+                    <button class="match__item" data-side="R" data-id="fb3">後端邏輯(寫資料、讀日曆)</button>
+                    <button class="match__item" data-side="R" data-id="fb1">畫面結構(骨架)</button>
+                    <button class="match__item" data-side="R" data-id="fb4">資料庫(存所有記錄)</button>
+                    <button class="match__item" data-side="R" data-id="fb2">外觀樣式(顏色、字體)</button>
+                  </div>
+                </div>
+              </div>
+              <div class="quiz__feedback"></div>
+            </div>
+
+            <!-- Q2: MC -->
+            <div class="quiz" data-quiz="f2" data-type="mc" data-correct="b">
+              <div class="quiz__head">
+                <span class="quiz__type-tag">選擇題</span>
+                <h4 class="quiz__title"><span class="quiz__title-num">Q2.</span>跟 AI 協作最正確的方式是?</h4>
+                <span class="quiz__status"></span>
+              </div>
+              <div class="quiz__options">
+                <button class="quiz__option" data-opt="a"><span class="quiz__option-letter">A</span><span>一次把整個專案需求都告訴 AI,讓它寫完</span></button>
+                <button class="quiz__option" data-opt="b"><span class="quiz__option-letter">B</span><span>請 AI 寫小塊功能,每寫完都驗證能跑再進下一步</span></button>
+                <button class="quiz__option" data-opt="c"><span class="quiz__option-letter">C</span><span>直接複製貼上 AI 的程式碼,出錯再說</span></button>
+                <button class="quiz__option" data-opt="d"><span class="quiz__option-letter">D</span><span>自己先學會所有語言再開始</span></button>
+              </div>
+              <div class="quiz__feedback"></div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="section__complete" data-complete-zone="foundation">
+          <div class="section__complete-status">尚未通過</div>
+          <div class="section__complete-msg">完成上方測驗即可自動通過本章</div>
+        </div>
+      </section>
+
+      <!-- ========== UNIT 1 ========== -->
+      <section class="section" id="sec-unit1" data-section="unit1">
+        <div class="section__header">
+          <div class="section__number">02 — UNIT ONE</div>
+          <h2 class="section__title">錯誤訊息<span>怎麼讀</span></h2>
+          <p class="section__lede">工程師最大的秘密:80% 的 bug,錯誤訊息已經告訴你答案了。</p>
+        </div>
+
+        <div class="callout callout--key">
+          <div class="callout__icon">真相</div>
+          <div class="callout__body">
+            <p>大部分新手不看錯誤訊息直接截圖問 AI,等於警察報案不看監視器直接通靈。<strong>學會讀錯誤訊息,你就贏 50% 的人。</strong></p>
+          </div>
+        </div>
+
+        <h3><span class="h3-num">§1</span>錯誤的兩種類型</h3>
+        <h4>類型 A:後端錯誤(Code.gs 出錯)</h4>
+        <p>長這樣:</p>
+        <div class="codeblock" data-lang="ERROR">
+<pre>TypeError: Cannot read properties of undefined (reading 'getRange')
+    at startTask (Code.gs:15:23)</pre>
+        </div>
+        <p>從上到下、從左到右讀:</p>
+        <div class="tbl-wrap">
+        <table class="data">
+          <thead><tr><th>部分</th><th>內容</th><th>意思</th></tr></thead>
+          <tbody>
+            <tr><td>錯誤類型</td><td><code>TypeError</code></td><td>型別錯誤:你把東西當成它不是的東西用了</td></tr>
+            <tr><td>錯誤描述</td><td><code>Cannot read properties of undefined</code></td><td>某個東西是空的,你卻想從它讀屬性</td></tr>
+            <tr><td>出錯位置</td><td><code>Code.gs:15:23</code></td><td>第 15 行第 23 字元,在 startTask 函數裡</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p><strong>翻譯成人話:</strong>你的 <code>startTask</code> 函數第 15 行,有一個東西是空的,但你卻對它呼叫了 <code>.getRange()</code>。</p>
+
+        <h4>類型 B:前端錯誤(HTML 裡的 JavaScript 出錯)</h4>
+        <p>這種錯誤<strong>不會出現在 Apps Script 編輯器</strong>,要去瀏覽器的開發者工具看(下單元教)。</p>
+
+        <h3><span class="h3-num">§2</span>五個你絕對會遇到的錯誤</h3>
+        <div class="tbl-wrap">
+        <table class="data">
+          <thead><tr><th>錯誤訊息</th><th>意思</th><th>通常原因</th></tr></thead>
+          <tbody>
+            <tr><td><code>TypeError: Cannot read properties of undefined</code></td><td>你想用一個不存在的東西</td><td>變數名/Sheet 名打錯</td></tr>
+            <tr><td><code>ReferenceError: X is not defined</code></td><td>X 根本沒宣告</td><td>變數/函數名拼錯</td></tr>
+            <tr><td><code>SyntaxError: Unexpected token</code></td><td>語法錯誤</td><td>括號、引號、分號沒成對</td></tr>
+            <tr><td><code>Range not found</code></td><td>找不到儲存格</td><td>儲存格範圍寫錯</td></tr>
+            <tr><td><code>Authorization required</code></td><td>權限問題</td><td>需要授權或重新部署</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <!-- UNIT 1 QUIZ -->
+        <div class="quiz-zone" data-quiz-zone="unit1" data-required="4">
+          <div class="quiz-zone__header">
+            <div class="quiz-zone__title">單元一・通關測驗</div>
+            <div class="quiz-zone__progress" data-progress-label>0 / 4 答對</div>
+          </div>
+          <div class="quiz-zone__body">
+
+            <!-- Q1 MC -->
+            <div class="quiz" data-quiz="u1q1" data-type="mc" data-correct="b">
+              <div class="quiz__head">
+                <span class="quiz__type-tag">選擇題</span>
+                <h4 class="quiz__title"><span class="quiz__title-num">Q1.</span>看到 <code>ReferenceError: gtSheet is not defined</code> 最可能是?</h4>
+                <span class="quiz__status"></span>
+              </div>
+              <div class="quiz__options">
+                <button class="quiz__option" data-opt="a"><span class="quiz__option-letter">A</span><span>Google Sheet 權限不夠</span></button>
+                <button class="quiz__option" data-opt="b"><span class="quiz__option-letter">B</span><span>變數或函數名字拼錯(應該是 getSheet)</span></button>
+                <button class="quiz__option" data-opt="c"><span class="quiz__option-letter">C</span><span>網路斷線</span></button>
+                <button class="quiz__option" data-opt="d"><span class="quiz__option-letter">D</span><span>Apps Script 版本太舊</span></button>
+              </div>
+              <div class="quiz__feedback"></div>
+            </div>
+
+            <!-- Q2 配對 -->
+            <div class="quiz" data-quiz="u1q2" data-type="match" data-pairs='[["e1","c1"],["e2","c2"],["e3","c3"],["e4","c4"],["e5","c5"]]'>
+              <div class="quiz__head">
+                <span class="quiz__type-tag">配對題</span>
+                <h4 class="quiz__title"><span class="quiz__title-num">Q2.</span>把「錯誤訊息」配到「原因」</h4>
+                <span class="quiz__status"></span>
+              </div>
+              <div class="match">
+                <div class="match__col">
+                  <div class="match__col-label">錯誤訊息</div>
+                  <div class="match__items">
+                    <button class="match__item" data-side="L" data-id="e1"><code>Cannot read properties of undefined</code></button>
+                    <button class="match__item" data-side="L" data-id="e2"><code>X is not defined</code></button>
+                    <button class="match__item" data-side="L" data-id="e3"><code>Unexpected token</code></button>
+                    <button class="match__item" data-side="L" data-id="e4"><code>Range not found</code></button>
+                    <button class="match__item" data-side="L" data-id="e5"><code>Authorization required</code></button>
+                  </div>
+                </div>
+                <div class="match__col">
+                  <div class="match__col-label">原因</div>
+                  <div class="match__items">
+                    <button class="match__item" data-side="R" data-id="c3">括號、引號沒成對</button>
+                    <button class="match__item" data-side="R" data-id="c1">嘗試用一個還是空的東西</button>
+                    <button class="match__item" data-side="R" data-id="c5">權限沒給,需要授權</button>
+                    <button class="match__item" data-side="R" data-id="c2">名字拼錯</button>
+                    <button class="match__item" data-side="R" data-id="c4">儲存格範圍寫錯</button>
+                  </div>
+                </div>
+              </div>
+              <div class="quiz__feedback"></div>
+            </div>
+
+            <!-- Q3 改錯 -->
+            <div class="quiz" data-quiz="u1q3" data-type="debug" data-correct-line="5">
+              <div class="quiz__head">
+                <span class="quiz__type-tag">改錯題</span>
+                <h4 class="quiz__title"><span class="quiz__title-num">Q3.</span>點選出問題的那一行</h4>
+                <span class="quiz__status"></span>
+              </div>
+              <div class="quiz__prompt"><p>執行後跳出錯誤:<code>ReferenceError: taskName is not defined at Code.gs:5</code></p></div>
+              <div class="debug-code">
+                <div class="debug-code__line" data-line="1">function startTask() {</div>
+                <div class="debug-code__line" data-line="2">  const sheet = SpreadsheetApp.getActive().getSheetByName('Tasks');</div>
+                <div class="debug-code__line" data-line="3">  const row = sheet.getLastRow() + 1;</div>
+                <div class="debug-code__line" data-line="4">  sheet.getRange(row, 1).setValue(new Date());</div>
+                <div class="debug-code__line" data-line="5">  sheet.getRange(row, 2).setValue(taskName);</div>
+                <div class="debug-code__line" data-line="6">  return 'OK';</div>
+                <div class="debug-code__line" data-line="7">}</div>
+              </div>
+              <div class="quiz__feedback"></div>
+            </div>
+
+            <!-- Q4 實作 -->
+            <div class="quiz" data-quiz="u1q4" data-type="practical">
+              <div class="quiz__head">
+                <span class="quiz__type-tag">實作題</span>
+                <h4 class="quiz__title"><span class="quiz__title-num">Q4.</span>解析這則錯誤訊息</h4>
+                <span class="quiz__status"></span>
+              </div>
+              <div class="quiz__prompt">
+                <p>你看到:<code>TypeError: Cannot read properties of undefined (reading 'appendRow') at Code.gs:8:7</code></p>
+                <p>請在心裡(或在框內)回答這三個問題:</p>
+                <ol>
+                  <li>這是哪一種錯誤?(前端 / 後端)</li>
+                  <li>出在第幾行?</li>
+                  <li>你的第一個假設是什麼?</li>
+                </ol>
+              </div>
+              <textarea class="quiz__textarea" placeholder="在這裡寫下你的答案(只給自己看,不會送出),或直接在心裡想完再對答案..."></textarea>
+              <div class="quiz__actions">
+                <button class="btn" data-action="reveal">對答案</button>
+              </div>
+              <div class="quiz__answer">
+                <div class="quiz__answer-label">參考解答</div>
+                <ol>
+                  <li><strong>後端</strong>錯誤(Code.gs 開頭就是線索)</li>
+                  <li>第 <strong>8</strong> 行第 7 字元</li>
+                  <li>應該是 <code>.appendRow()</code> 前面那個變數(可能是 <code>sheet</code>)是 <code>undefined</code>。最可能的原因是 <code>getSheetByName()</code> 找不到指定的分頁(分頁名稱拼錯)。</li>
+                </ol>
+                <div class="self-check">
+                  <span class="self-check__label">你的答案對嗎?</span>
+                  <button class="btn btn--success" data-action="self-correct">大致對 ✓</button>
+                  <button class="btn btn--danger-outline" data-action="self-wrong">差很多,重看</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="section__complete" data-complete-zone="unit1">
+          <div class="section__complete-status">尚未通過</div>
+          <div class="section__complete-msg">完成上方 4 題測驗即可自動通過本章</div>
+        </div>
+      </section>
+
+      <!-- ========== UNIT 2 ========== -->
+      <section class="section" id="sec-unit2" data-section="unit2">
+        <div class="section__header">
+          <div class="section__number">03 — UNIT TWO</div>
+          <h2 class="section__title">Logger 與 console<br><span>偵探的放大鏡</span></h2>
+          <p class="section__lede">有時候程式不會報錯,但結果就是不對。這時候,你需要在程式碼裡插入「印出來看看」。</p>
+        </div>
+
+        <h3><span class="h3-num">§1</span>為什麼需要這個</h3>
+        <p>常見的「靜默失敗」狀況:</p>
+        <ul>
+          <li>點按鈕後 Sheet 沒寫入,但<strong>也沒錯誤訊息</strong></li>
+          <li>計算出來的時間不對</li>
+          <li>畫面顯示 <code>undefined</code></li>
+        </ul>
+        <p>這時候單純看程式碼猜不出來。你需要<strong>讓程式自己告訴你資料流到哪壞了。</strong></p>
+
+        <h3><span class="h3-num">§2</span>工具一:Logger.log() 給 Code.gs 用</h3>
+        <div class="codeblock" data-lang="CODE.GS">
+<pre><span class="tk-keyword">function</span> <span class="tk-fn">startTask</span>() {
+  Logger.<span class="tk-fn">log</span>(<span class="tk-string">'🟢 startTask 被呼叫了'</span>);  <span class="tk-comment">// 確認函數有跑到</span>
+
+  <span class="tk-keyword">const</span> now = <span class="tk-keyword">new</span> <span class="tk-fn">Date</span>();
+  Logger.<span class="tk-fn">log</span>(<span class="tk-string">'現在時間: '</span> + now);
+
+  <span class="tk-keyword">const</span> sheet = SpreadsheetApp.<span class="tk-fn">getActive</span>().<span class="tk-fn">getSheetByName</span>(<span class="tk-string">'Tasks'</span>);
+  Logger.<span class="tk-fn">log</span>(<span class="tk-string">'sheet 物件: '</span> + sheet);  <span class="tk-comment">// 印 null 就是分頁名錯</span>
+
+  sheet.<span class="tk-fn">appendRow</span>([now]);
+  Logger.<span class="tk-fn">log</span>(<span class="tk-string">'✅ 寫入完成'</span>);
+}</pre>
+        </div>
+        <p><strong>怎麼看 Logger 結果?</strong>在 Apps Script 編輯器手動跑這個函數(按上方「執行」),下方會出現「執行記錄」面板。</p>
+
+        <h3><span class="h3-num">§3</span>工具二:console.log() 給 HTML 用</h3>
+        <div class="codeblock" data-lang="INDEX.HTML">
+<pre><span class="tk-tag">&lt;script&gt;</span>
+<span class="tk-keyword">function</span> <span class="tk-fn">onStartButtonClick</span>() {
+  console.<span class="tk-fn">log</span>(<span class="tk-string">'🟢 按鈕被點到了'</span>);
+
+  google.script.run
+    .<span class="tk-fn">withSuccessHandler</span>(<span class="tk-keyword">function</span>(result) {
+      console.<span class="tk-fn">log</span>(<span class="tk-string">'✅ 後端回傳:'</span>, result);
+    })
+    .<span class="tk-fn">withFailureHandler</span>(<span class="tk-keyword">function</span>(err) {
+      console.<span class="tk-fn">log</span>(<span class="tk-string">'❌ 後端錯誤:'</span>, err);
+    })
+    .<span class="tk-fn">startTask</span>();
+}
+<span class="tk-tag">&lt;/script&gt;</span></pre>
+        </div>
+        <div class="callout callout--warn">
+          <div class="callout__icon">注意</div>
+          <div class="callout__body">
+            <p><strong>手機上很難看 Console,debug 階段一律用電腦瀏覽器。</strong></p>
+            <p>Chrome / Edge 按 <code>F12</code> 或 <code>Ctrl + Shift + I</code>(Mac:<code>Cmd + Option + I</code>)→ 找到「Console」分頁。</p>
+          </div>
+        </div>
+
+        <h3><span class="h3-num">§4</span>終極技巧:夾擠法</h3>
+        <p>不知道哪一行出錯時,在懷疑的區段每隔幾行插一個 log:</p>
+        <div class="codeblock" data-lang="JS">
+<pre><span class="tk-keyword">function</span> <span class="tk-fn">startTask</span>() {
+  Logger.<span class="tk-fn">log</span>(<span class="tk-string">'1'</span>);  <span class="tk-comment">// 印出 ✅</span>
+  <span class="tk-keyword">const</span> sheet = SpreadsheetApp.<span class="tk-fn">getActive</span>().<span class="tk-fn">getSheetByName</span>(<span class="tk-string">'Tasks'</span>);
+  Logger.<span class="tk-fn">log</span>(<span class="tk-string">'2'</span>);  <span class="tk-comment">// 印出 ✅</span>
+  <span class="tk-keyword">const</span> lastRow = sheet.<span class="tk-fn">getLastRow</span>();
+  Logger.<span class="tk-fn">log</span>(<span class="tk-string">'3'</span>);  <span class="tk-comment">// 印出 ✅</span>
+  <span class="tk-keyword">const</span> newId = <span class="tk-fn">generateId</span>();  <span class="tk-comment">// 假設這裡有 bug</span>
+  Logger.<span class="tk-fn">log</span>(<span class="tk-string">'4'</span>);  <span class="tk-comment">// ❌ 沒印出來!</span>
+  sheet.<span class="tk-fn">appendRow</span>([newId, <span class="tk-keyword">new</span> <span class="tk-fn">Date</span>()]);
+}</pre>
+        </div>
+        <div class="callout callout--tip">
+          <div class="callout__icon">技巧</div>
+          <div class="callout__body">
+            <p><strong>3 有印、4 沒印 → 罪犯在第 3、4 行之間,就是 <code>generateId()</code> 出問題。</strong></p>
+          </div>
+        </div>
+
+        <!-- UNIT 2 QUIZ -->
+        <div class="quiz-zone" data-quiz-zone="unit2" data-required="4">
+          <div class="quiz-zone__header">
+            <div class="quiz-zone__title">單元二・通關測驗</div>
+            <div class="quiz-zone__progress" data-progress-label>0 / 4 答對</div>
+          </div>
+          <div class="quiz-zone__body">
+
+            <!-- Q1 MC -->
+            <div class="quiz" data-quiz="u2q1" data-type="mc" data-correct="b">
+              <div class="quiz__head">
+                <span class="quiz__type-tag">選擇題</span>
+                <h4 class="quiz__title"><span class="quiz__title-num">Q1.</span>在 Code.gs(後端)想要看「程式有沒有跑到這行」,該用?</h4>
+                <span class="quiz__status"></span>
+              </div>
+              <div class="quiz__options">
+                <button class="quiz__option" data-opt="a"><span class="quiz__option-letter">A</span><span><code>console.log()</code>,然後在手機上看</span></button>
+                <button class="quiz__option" data-opt="b"><span class="quiz__option-letter">B</span><span><code>Logger.log()</code>,然後在 Apps Script 編輯器「執行記錄」看</span></button>
+                <button class="quiz__option" data-opt="c"><span class="quiz__option-letter">C</span><span><code>alert()</code> 跳視窗</span></button>
+                <button class="quiz__option" data-opt="d"><span class="quiz__option-letter">D</span><span><code>print()</code> 印在 Sheet 上</span></button>
+              </div>
+              <div class="quiz__feedback"></div>
+            </div>
+
+            <!-- Q2 MC -->
+            <div class="quiz" data-quiz="u2q2" data-type="mc" data-correct="c">
+              <div class="quiz__head">
+                <span class="quiz__type-tag">選擇題</span>
+                <h4 class="quiz__title"><span class="quiz__title-num">Q2.</span>在 HTML 裡 <code>console.log</code> 印的東西,要去哪裡看?</h4>
+                <span class="quiz__status"></span>
+              </div>
+              <div class="quiz__options">
+                <button class="quiz__option" data-opt="a"><span class="quiz__option-letter">A</span><span>Apps Script 編輯器的執行記錄</span></button>
+                <button class="quiz__option" data-opt="b"><span class="quiz__option-letter">B</span><span>Google Sheet 的儲存格</span></button>
+                <button class="quiz__option" data-opt="c"><span class="quiz__option-letter">C</span><span>瀏覽器開發者工具的 Console 分頁(按 F12)</span></button>
+                <button class="quiz__option" data-opt="d"><span class="quiz__option-letter">D</span><span>程式會自動顯示在畫面上</span></button>
+              </div>
+              <div class="quiz__feedback"></div>
+            </div>
+
+            <!-- Q3 改錯 -->
+            <div class="quiz" data-quiz="u2q3" data-type="debug" data-correct-line="3">
+              <div class="quiz__head">
+                <span class="quiz__type-tag">改錯題</span>
+                <h4 class="quiz__title"><span class="quiz__title-num">Q3.</span>用 Log 縮小範圍,點選最可能的罪犯</h4>
+                <span class="quiz__status"></span>
+              </div>
+              <div class="quiz__prompt">
+                <p>執行後執行記錄只顯示了 <code>A</code> 一個字,就停止了,沒有錯誤訊息。請點選最可能有問題的那一行:</p>
+              </div>
+              <div class="debug-code">
+                <div class="debug-code__line" data-line="1">function startTask() {</div>
+                <div class="debug-code__line" data-line="2">  Logger.log('A');</div>
+                <div class="debug-code__line" data-line="3">  const sheet = getSheet();</div>
+                <div class="debug-code__line" data-line="4">  Logger.log('B');</div>
+                <div class="debug-code__line" data-line="5">  const lastRow = sheet.getLastRow();</div>
+                <div class="debug-code__line" data-line="6">  Logger.log('C');</div>
+                <div class="debug-code__line" data-line="7">  sheet.appendRow([new Date(), 'New task']);</div>
+                <div class="debug-code__line" data-line="8">  Logger.log('D');</div>
+                <div class="debug-code__line" data-line="9">}</div>
+              </div>
+              <div class="quiz__feedback"></div>
+            </div>
+
+            <!-- Q4 實作 -->
+            <div class="quiz" data-quiz="u2q4" data-type="practical">
+              <div class="quiz__head">
+                <span class="quiz__type-tag">實作題</span>
+                <h4 class="quiz__title"><span class="quiz__title-num">Q4.</span>該在哪裡插 Log?</h4>
+                <span class="quiz__status"></span>
+              </div>
+              <div class="quiz__prompt">
+                <p>情境:你按了「開始任務」按鈕,Sheet 沒有寫入資料,<strong>且沒有任何錯誤訊息</strong>。</p>
+                <p>請寫出你會在<strong>哪 3 個地方</strong>插入 <code>Logger.log</code> 或 <code>console.log</code> 來找問題(寫出位置+印什麼)。</p>
+              </div>
+              <textarea class="quiz__textarea" placeholder="例如:1. HTML 按鈕 onClick 開頭,印「按鈕點到了」..."></textarea>
+              <div class="quiz__actions">
+                <button class="btn" data-action="reveal">對答案</button>
+              </div>
+              <div class="quiz__answer">
+                <div class="quiz__answer-label">參考解答(任 3 個都算對)</div>
+                <ol>
+                  <li><strong>HTML 按鈕 onClick 開頭</strong> → <code>console.log('按鈕點到了')</code>,確認點擊有觸發</li>
+                  <li><strong><code>withSuccessHandler</code> 裡</strong> → <code>console.log('後端回傳:', result)</code>,確認後端有回應</li>
+                  <li><strong><code>withFailureHandler</code> 裡</strong> → <code>console.log('失敗:', err)</code>,看有沒有靜默失敗</li>
+                  <li><strong>後端函數開頭</strong> → <code>Logger.log('startTask 被呼叫')</code>,確認後端有跑到</li>
+                  <li><strong><code>appendRow</code> 那行前後</strong> → <code>Logger.log('準備寫入:', data)</code></li>
+                  <li><strong><code>getSheetByName</code> 之後</strong> → <code>Logger.log('sheet:', sheet)</code>(印 null 就是名字錯)</li>
+                </ol>
+                <p style="margin-top:10px;"><strong>重點不是「猜出問題」,是「讓程式自己告訴你答案」。</strong></p>
+                <div class="self-check">
+                  <span class="self-check__label">你的答案對嗎?</span>
+                  <button class="btn btn--success" data-action="self-correct">寫出 3 個正確的 ✓</button>
+                  <button class="btn btn--danger-outline" data-action="self-wrong">寫不太出來</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="section__complete" data-complete-zone="unit2">
+          <div class="section__complete-status">尚未通過</div>
+          <div class="section__complete-msg">完成上方 4 題測驗即可自動通過本章</div>
+        </div>
+      </section>
+
+      <!-- ========== UNIT 3 ========== -->
+      <section class="section" id="sec-unit3" data-section="unit3">
+        <div class="section__header">
+          <div class="section__number">04 — UNIT THREE</div>
+          <h2 class="section__title">寫高品質的<span>Bug Prompt</span></h2>
+          <p class="section__lede">你給的線索越多,AI 越不用猜。這個能力,才是你跟 AI 協作的真正戰力。</p>
+        </div>
+
+        <h3><span class="h3-num">§1</span>為什麼這個最重要</h3>
+        <p>學會看錯誤訊息、學會用 Logger 之後,<strong>接下來 90% 還是會交給 AI 修</strong>。差別在於:</p>
+        <div class="compare">
+          <div class="compare__item compare--bad">
+            <div class="compare__label">✘ 爛 Prompt</div>
+            <p style="margin:0">AI 亂猜 → 改錯 → 又出新 bug → 鬼打牆 10 輪</p>
+          </div>
+          <div class="compare__item compare--good">
+            <div class="compare__label">✓ 好 Prompt</div>
+            <p style="margin:0">AI 一次找到問題 → 一次解決</p>
+          </div>
+        </div>
+
+        <h3><span class="h3-num">§2</span>高品質 Bug Prompt 的 7 個元素</h3>
+        <div class="tbl-wrap">
+        <table class="data">
+          <thead><tr><th>編號</th><th>元素</th><th>範例</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><strong>我在做什麼</strong></td><td>「我點擊『開始任務』按鈕」</td></tr>
+            <tr><td>2</td><td><strong>預期結果</strong></td><td>「Tasks 分頁應該新增一列」</td></tr>
+            <tr><td>3</td><td><strong>實際結果</strong></td><td>「Sheets 沒有變化」</td></tr>
+            <tr><td>4</td><td><strong>錯誤訊息</strong></td><td>「Console 顯示 <code>TypeError</code>」或「無」</td></tr>
+            <tr><td>5</td><td><strong>已驗證</strong></td><td>「Logger 顯示 startTask 有跑到,但 appendRow 之後沒印」</td></tr>
+            <tr><td>6</td><td><strong>相關程式碼</strong></td><td>貼上相關函數(不是整份 500 行)</td></tr>
+            <tr><td>7</td><td><strong>環境資訊</strong></td><td>「Apps Script + Sheets,Chrome 桌面」</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <h3><span class="h3-num">§3</span>送你一個模板</h3>
+        <div class="template">
+<button class="btn-copy" data-copy-target="tmpl1">複製模板</button>
+<span id="tmpl1"><span class="template__label">【狀況】</span>
+專案:<span class="template__placeholder">_______</span>
+環境:<span class="template__placeholder">_______</span>
+
+<span class="template__label">【我在做什麼】</span>
+<span class="template__placeholder">一句話描述操作</span>
+
+<span class="template__label">【預期結果】</span>
+<span class="template__placeholder">期待會發生什麼</span>
+
+<span class="template__label">【實際結果】</span>
+<span class="template__placeholder">實際發生什麼</span>
+
+<span class="template__label">【錯誤訊息】</span>
+<span class="template__placeholder">貼上錯誤訊息,沒有就寫「無」</span>
+
+<span class="template__label">【已驗證】</span>
+- <span class="template__placeholder">Logger / console 印出什麼</span>
+- <span class="template__placeholder">我已經試過什麼</span>
+
+<span class="template__label">【相關程式碼】</span>
+<span class="template__placeholder">只貼相關函數,不要整份</span>
+
+<span class="template__label">【我的問題】</span>
+<span class="template__placeholder">你想問什麼</span></span>
+        </div>
+
+        <!-- UNIT 3 QUIZ -->
+        <div class="quiz-zone" data-quiz-zone="unit3" data-required="4">
+          <div class="quiz-zone__header">
+            <div class="quiz-zone__title">單元三・通關測驗</div>
+            <div class="quiz-zone__progress" data-progress-label>0 / 4 答對</div>
+          </div>
+          <div class="quiz-zone__body">
+
+            <!-- Q1 MC -->
+            <div class="quiz" data-quiz="u3q1" data-type="mc" data-correct="c">
+              <div class="quiz__head">
+                <span class="quiz__type-tag">選擇題</span>
+                <h4 class="quiz__title"><span class="quiz__title-num">Q1.</span>下列哪一個 Bug Prompt 品質最高?</h4>
+                <span class="quiz__status"></span>
+              </div>
+              <div class="quiz__options">
+                <button class="quiz__option" data-opt="a"><span class="quiz__option-letter">A</span><span>「按鈕壞了幫我修」</span></button>
+                <button class="quiz__option" data-opt="b"><span class="quiz__option-letter">B</span><span>「點開始沒反應,看一下程式碼」+貼整份 500 行</span></button>
+                <button class="quiz__option" data-opt="c"><span class="quiz__option-letter">C</span><span>狀況+預期+實際+錯誤訊息+已驗證+相關程式碼</span></button>
+                <button class="quiz__option" data-opt="d"><span class="quiz__option-letter">D</span><span>「我覺得是函數的問題,你猜猜看哪裡錯」</span></button>
+              </div>
+              <div class="quiz__feedback"></div>
+            </div>
+
+            <!-- Q2 MC -->
+            <div class="quiz" data-quiz="u3q2" data-type="mc" data-correct="d">
+              <div class="quiz__head">
+                <span class="quiz__type-tag">選擇題</span>
+                <h4 class="quiz__title"><span class="quiz__title-num">Q2.</span>高品質 Bug Prompt 的 7 元素,<strong>不包含</strong>下列哪一項?</h4>
+                <span class="quiz__status"></span>
+              </div>
+              <div class="quiz__options">
+                <button class="quiz__option" data-opt="a"><span class="quiz__option-letter">A</span><span>我在做什麼</span></button>
+                <button class="quiz__option" data-opt="b"><span class="quiz__option-letter">B</span><span>預期結果 vs 實際結果</span></button>
+                <button class="quiz__option" data-opt="c"><span class="quiz__option-letter">C</span><span>已經驗證過什麼</span></button>
+                <button class="quiz__option" data-opt="d"><span class="quiz__option-letter">D</span><span>專案的詳細個人背景故事</span></button>
+              </div>
+              <div class="quiz__feedback"></div>
+            </div>
+
+            <!-- Q3 配對 -->
+            <div class="quiz" data-quiz="u3q3" data-type="match" data-pairs='[["pa","pe1"],["pb","pe2"],["pc","pe3"],["pd","pe4"],["pe","pe5"]]'>
+              <div class="quiz__head">
+                <span class="quiz__type-tag">配對題</span>
+                <h4 class="quiz__title"><span class="quiz__title-num">Q3.</span>把「7 元素之一」配到「例句」</h4>
+                <span class="quiz__status"></span>
+              </div>
+              <div class="match">
+                <div class="match__col">
+                  <div class="match__col-label">元素</div>
+                  <div class="match__items">
+                    <button class="match__item" data-side="L" data-id="pa">我在做什麼</button>
+                    <button class="match__item" data-side="L" data-id="pb">預期結果</button>
+                    <button class="match__item" data-side="L" data-id="pc">實際結果</button>
+                    <button class="match__item" data-side="L" data-id="pd">錯誤訊息</button>
+                    <button class="match__item" data-side="L" data-id="pe">已驗證</button>
+                  </div>
+                </div>
+                <div class="match__col">
+                  <div class="match__col-label">例句</div>
+                  <div class="match__items">
+                    <button class="match__item" data-side="R" data-id="pe3">G 欄是空的</button>
+                    <button class="match__item" data-side="R" data-id="pe1">點擊「結束任務」按鈕</button>
+                    <button class="match__item" data-side="R" data-id="pe5">Logger 顯示 startTask 有被呼叫</button>
+                    <button class="match__item" data-side="R" data-id="pe2">G 欄應寫入結束時間</button>
+                    <button class="match__item" data-side="R" data-id="pe4"><code>TypeError ... Code.gs:78</code></button>
+                  </div>
+                </div>
+              </div>
+              <div class="quiz__feedback"></div>
+            </div>
+
+            <!-- Q4 實作 -->
+            <div class="quiz" data-quiz="u3q4" data-type="practical">
+              <div class="quiz__head">
+                <span class="quiz__type-tag">實作題</span>
+                <h4 class="quiz__title"><span class="quiz__title-num">Q4.</span>寫出「已驗證」段落</h4>
+                <span class="quiz__status"></span>
+              </div>
+              <div class="quiz__prompt">
+                <p>情境:你輸入「預期時間 30 分鐘」,點儲存後 Sheet 確實寫入了「30」,但隔天打開卻顯示成 <code>1900/1/30</code> 這個日期。</p>
+                <p>請寫出 Bug Prompt 中「【已驗證】」這一段該寫什麼。</p>
+              </div>
+              <textarea class="quiz__textarea" placeholder="例如:- 我用 Logger 確認存入時是純數字 30...&#10;- ..."></textarea>
+              <div class="quiz__actions">
+                <button class="btn" data-action="reveal">對答案</button>
+              </div>
+              <div class="quiz__answer">
+                <div class="quiz__answer-label">參考解答(列出 3 個以上就算對)</div>
+                <ul>
+                  <li>Logger.log 顯示存入當下是<strong>純數字 30</strong>,沒有日期格式</li>
+                  <li>當天在 Sheet 看也是顯示 30,正常</li>
+                  <li>重整 Sheet / 隔天打開後該儲存格變成 <code>1900/1/30</code></li>
+                  <li>已確認該欄的儲存格<strong>格式</strong>從「自動」變成「日期」</li>
+                  <li>推測是 Sheet 把數字 30 當成日期序列(Excel/Sheet 的序號 30 = 1900/1/30)</li>
+                </ul>
+                <p style="margin-top:8px;"><strong>核心觀念:</strong>「已驗證」就是把你做過的偵察結果列出來,幫 AI 縮小範圍。</p>
+                <div class="self-check">
+                  <span class="self-check__label">你的答案對嗎?</span>
+                  <button class="btn btn--success" data-action="self-correct">寫出方向對的 3 項 ✓</button>
+                  <button class="btn btn--danger-outline" data-action="self-wrong">差很多,重看</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="section__complete" data-complete-zone="unit3">
+          <div class="section__complete-status">尚未通過</div>
+          <div class="section__complete-msg">完成上方 4 題測驗即可自動通過本章</div>
+        </div>
+      </section>
+
+      <!-- ========== UNIT 4 ========== -->
+      <section class="section" id="sec-unit4" data-section="unit4">
+        <div class="section__header">
+          <div class="section__number">05 — UNIT FOUR</div>
+          <h2 class="section__title">Debug 流程 <span>SOP</span></h2>
+          <p class="section__lede">學完工具,給你一個「遇到 bug 時的標準流程」,照著做就對了。</p>
+        </div>
+
+        <h3><span class="h3-num">§1</span>五步抓 Bug 法</h3>
+        <div class="sop">
+          <div class="sop__step"><div class="sop__num">1</div><div class="sop__body"><strong>看錯誤訊息</strong><small>有錯誤訊息 → 讀懂它(單元一)→ 八成解決。沒有 → 進入 Step 2。</small></div></div>
+          <div class="sop__step"><div class="sop__num">2</div><div class="sop__body"><strong>確認壞在前端還是後端</strong><small>前端壞:看 Chrome Console(F12)。後端壞:看 Apps Script 執行記錄。</small></div></div>
+          <div class="sop__step"><div class="sop__num">3</div><div class="sop__body"><strong>用 Logger / console.log 夾擠法</strong><small>在懷疑的區段插滿 log,找出「哪一行之後就壞了」。</small></div></div>
+          <div class="sop__step"><div class="sop__num">4</div><div class="sop__body"><strong>形成假設</strong><small>「我懷疑是 ___ 出問題,因為 ___」</small></div></div>
+          <div class="sop__step"><div class="sop__num">5</div><div class="sop__body"><strong>解決</strong><small>自己看得出來 → 改。看不出來 → 用模板寫 bug prompt 問 AI。</small></div></div>
+        </div>
+
+        <div class="callout callout--key">
+          <div class="callout__icon">關鍵</div>
+          <div class="callout__body">
+            <p>解決後做一件事:<strong>理解原因</strong>。不要只問「怎麼修」,要問「為什麼會這樣」。這樣下次同類 bug 你自己就能解。</p>
+          </div>
+        </div>
+
+        <h3><span class="h3-num">§2</span>三個鐵則</h3>
+        <h4>鐵則一:一次只改一件事</h4>
+        <p>別一次改 5 個地方,出問題你不知道是哪個改壞的。<strong>改一個 → 測 → 改一個 → 測。</strong></p>
+        <h4>鐵則二:能跑的版本一定要備份</h4>
+        <p>跟 AI 開始大改之前,把當前能跑的版本複製存檔。改壞了至少能回去。</p>
+        <h4>鐵則三:小步前進,每步都跑</h4>
+        <p>AI 給你 100 行你看不懂,不如要它一次寫 10 行、跑一次,你看懂了再繼續。</p>
+
+        <!-- UNIT 4 QUIZ -->
+        <div class="quiz-zone" data-quiz-zone="unit4" data-required="4">
+          <div class="quiz-zone__header">
+            <div class="quiz-zone__title">單元四・通關測驗</div>
+            <div class="quiz-zone__progress" data-progress-label>0 / 4 答對</div>
+          </div>
+          <div class="quiz-zone__body">
+
+            <!-- Q1 MC -->
+            <div class="quiz" data-quiz="u4q1" data-type="mc" data-correct="b">
+              <div class="quiz__head">
+                <span class="quiz__type-tag">選擇題</span>
+                <h4 class="quiz__title"><span class="quiz__title-num">Q1.</span>你按按鈕沒反應、無錯誤訊息,根據五步法,下一步該做什麼?</h4>
+                <span class="quiz__status"></span>
+              </div>
+              <div class="quiz__options">
+                <button class="quiz__option" data-opt="a"><span class="quiz__option-letter">A</span><span>立刻把整份 code 丟給 AI 問</span></button>
+                <button class="quiz__option" data-opt="b"><span class="quiz__option-letter">B</span><span>確認壞在前端還是後端,然後用 Logger 夾擠法</span></button>
+                <button class="quiz__option" data-opt="c"><span class="quiz__option-letter">C</span><span>重啟電腦</span></button>
+                <button class="quiz__option" data-opt="d"><span class="quiz__option-letter">D</span><span>把所有函數重寫一次</span></button>
+              </div>
+              <div class="quiz__feedback"></div>
+            </div>
+
+            <!-- Q2 MC -->
+            <div class="quiz" data-quiz="u4q2" data-type="mc" data-correct="d">
+              <div class="quiz__head">
+                <span class="quiz__type-tag">選擇題</span>
+                <h4 class="quiz__title"><span class="quiz__title-num">Q2.</span>以下做法違反了幾個鐵則?<br>「我直接把 5 個函數都改寫,改完先別管之前能跑的版本,直接覆蓋上去測試。」</h4>
+                <span class="quiz__status"></span>
+              </div>
+              <div class="quiz__options">
+                <button class="quiz__option" data-opt="a"><span class="quiz__option-letter">A</span><span>只違反「一次只改一件事」</span></button>
+                <button class="quiz__option" data-opt="b"><span class="quiz__option-letter">B</span><span>只違反「能跑的版本要備份」</span></button>
+                <button class="quiz__option" data-opt="c"><span class="quiz__option-letter">C</span><span>只違反「小步前進,每步都跑」</span></button>
+                <button class="quiz__option" data-opt="d"><span class="quiz__option-letter">D</span><span>以上三項都違反</span></button>
+              </div>
+              <div class="quiz__feedback"></div>
+            </div>
+
+            <!-- Q3 配對 -->
+            <div class="quiz" data-quiz="u4q3" data-type="match" data-pairs='[["s1","a1"],["s2","a2"],["s3","a3"],["s4","a4"],["s5","a5"]]'>
+              <div class="quiz__head">
+                <span class="quiz__type-tag">配對題</span>
+                <h4 class="quiz__title"><span class="quiz__title-num">Q3.</span>把「SOP 步驟」配到「行動」</h4>
+                <span class="quiz__status"></span>
+              </div>
+              <div class="match">
+                <div class="match__col">
+                  <div class="match__col-label">步驟</div>
+                  <div class="match__items">
+                    <button class="match__item" data-side="L" data-id="s1">Step 1:看錯誤訊息</button>
+                    <button class="match__item" data-side="L" data-id="s2">Step 2:分前後端</button>
+                    <button class="match__item" data-side="L" data-id="s3">Step 3:夾擠 Log</button>
+                    <button class="match__item" data-side="L" data-id="s4">Step 4:形成假設</button>
+                    <button class="match__item" data-side="L" data-id="s5">Step 5:解決</button>
+                  </div>
+                </div>
+                <div class="match__col">
+                  <div class="match__col-label">行動</div>
+                  <div class="match__items">
+                    <button class="match__item" data-side="R" data-id="a3">插 5 個 Logger.log,看到哪個沒印</button>
+                    <button class="match__item" data-side="R" data-id="a5">用模板寫 bug prompt 問 AI</button>
+                    <button class="match__item" data-side="R" data-id="a1">讀 TypeError 是哪一行</button>
+                    <button class="match__item" data-side="R" data-id="a4">「我懷疑是分頁名拼錯」</button>
+                    <button class="match__item" data-side="R" data-id="a2">開 F12 / 看執行記錄</button>
+                  </div>
+                </div>
+              </div>
+              <div class="quiz__feedback"></div>
+            </div>
+
+            <!-- Q4 實作 -->
+            <div class="quiz" data-quiz="u4q4" data-type="practical">
+              <div class="quiz__head">
+                <span class="quiz__type-tag">實作題</span>
+                <h4 class="quiz__title"><span class="quiz__title-num">Q4.</span>跑一次完整 SOP</h4>
+                <span class="quiz__status"></span>
+              </div>
+              <div class="quiz__prompt">
+                <p>情境:你的計時器在畫面上顯示時間都對,但 Sheet 寫入的時間都<strong>晚 30 分鐘</strong>。</p>
+                <p>請依照五步驟,寫出你會怎麼追查這個 bug(每步至少一句)。</p>
+              </div>
+              <textarea class="quiz__textarea" placeholder="Step 1: ...&#10;Step 2: ...&#10;Step 3: ...&#10;Step 4: ...&#10;Step 5: ..."></textarea>
+              <div class="quiz__actions">
+                <button class="btn" data-action="reveal">對答案</button>
+              </div>
+              <div class="quiz__answer">
+                <div class="quiz__answer-label">參考解答</div>
+                <ol>
+                  <li><strong>Step 1 看錯誤訊息:</strong>沒有錯誤,程式正常執行 → 跳下一步</li>
+                  <li><strong>Step 2 分前後端:</strong>寫入動作在後端 Code.gs → 先從後端追</li>
+                  <li><strong>Step 3 夾擠 Log:</strong>在計算時間的每一步加 <code>Logger.log</code>,印出「程式判斷的時間」、「準備寫入的時間」、「寫入後 Sheet 裡的時間」,看是哪一步偏掉 30 分鐘</li>
+                  <li><strong>Step 4 形成假設:</strong>懷疑時區設定問題(專案時區跟台北時間差 30 分鐘?或某個 <code>new Date()</code> 算錯)</li>
+                  <li><strong>Step 5 解決+理解:</strong>檢查 Apps Script 專案的<strong>時區設定</strong>(設定 → 時區),改成 Asia/Taipei,並理解時區運作機制以免再犯</li>
+                </ol>
+                <div class="self-check">
+                  <span class="self-check__label">你的答案對嗎?</span>
+                  <button class="btn btn--success" data-action="self-correct">五步流程都寫到了 ✓</button>
+                  <button class="btn btn--danger-outline" data-action="self-wrong">少了好幾步,重看</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="section__complete" data-complete-zone="unit4">
+          <div class="section__complete-status">尚未通過</div>
+          <div class="section__complete-msg">完成上方 4 題測驗即可自動通過本章</div>
+        </div>
+      </section>
+
+      <!-- ========== TEMPLATES ========== -->
+      <section class="section" id="sec-templates" data-section="templates">
+        <div class="section__header">
+          <div class="section__number">06 — APPENDIX</div>
+          <h2 class="section__title">速查表 & <span>模板</span></h2>
+          <p class="section__lede">把這頁加入書籤。實戰時隨時翻回來查。</p>
+        </div>
+
+        <h3><span class="h3-num">A</span>錯誤訊息速查</h3>
+        <div class="tbl-wrap">
+        <table class="data">
+          <thead><tr><th>看到</th><th>就懷疑</th></tr></thead>
+          <tbody>
+            <tr><td><code>Cannot read properties of undefined</code></td><td>變數還沒賦值就用 / Sheet 名拼錯</td></tr>
+            <tr><td><code>X is not defined</code></td><td>名字拼錯(99%)</td></tr>
+            <tr><td><code>Unexpected token</code></td><td>括號、引號、分號沒成對</td></tr>
+            <tr><td><code>Range not found</code></td><td>儲存格範圍寫錯</td></tr>
+            <tr><td><code>Authorization required</code></td><td>權限沒給,需要重新部署</td></tr>
+            <tr><td><code>Service invoked too many times</code></td><td>呼叫太頻繁,加 sleep</td></tr>
+            <tr><td><code>Maximum call stack exceeded</code></td><td>無限遞迴,函數呼叫自己</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <h3><span class="h3-num">B</span>Bug 回報模板</h3>
+        <div class="template">
+<button class="btn-copy" data-copy-target="tmpl2">複製模板</button>
+<span id="tmpl2"><span class="template__label">【狀況】</span>
+專案:<span class="template__placeholder">_______</span>
+環境:<span class="template__placeholder">_______</span>
+
+<span class="template__label">【操作】</span>
+<span class="template__placeholder">_______</span>
+
+<span class="template__label">【預期】</span>
+<span class="template__placeholder">_______</span>
+
+<span class="template__label">【實際】</span>
+<span class="template__placeholder">_______</span>
+
+<span class="template__label">【錯誤訊息】</span>
+<span class="template__placeholder">_______</span>
+
+<span class="template__label">【已驗證】</span>
+- <span class="template__placeholder">_______</span>
+
+<span class="template__label">【相關程式碼】</span>
+<span class="template__placeholder">_______</span>
+
+<span class="template__label">【問題】</span>
+<span class="template__placeholder">_______</span></span>
+        </div>
+
+        <h3><span class="h3-num">C</span>跟 AI 合作的 7 條金律</h3>
+        <ol>
+          <li><strong>小塊寫</strong>:一次只要 AI 寫一個功能,不要整份噴出來</li>
+          <li><strong>每步驗證</strong>:跑得起來再進下一步</li>
+          <li><strong>備份能跑的版本</strong>:大改前一定存檔</li>
+          <li><strong>加註解</strong>:請 AI 給每個函數加註解,你才看得懂</li>
+          <li><strong>不懂就問</strong>:不要照貼,看不懂就問 AI 這段在做什麼</li>
+          <li><strong>用模板回報 bug</strong>:7 元素都給齊</li>
+          <li><strong>問「為什麼」不只問「怎麼修」</strong>:理解原因才能下次自己解</li>
+        </ol>
+
+        <h3><span class="h3-num">D</span>Debug 五步 SOP(壓縮版)</h3>
+        <div class="callout callout--info">
+          <div class="callout__icon">記</div>
+          <div class="callout__body">
+            <p><strong>讀錯誤 → 分前後端 → 夾擠 Log → 形成假設 → 解決 + 理解</strong></p>
+          </div>
+        </div>
+
+        <div class="section__complete" data-complete-zone="templates" data-manual="true">
+          <div class="section__complete-status">附錄為參考用,可手動標記</div>
+          <div class="section__complete-msg">把模板存好之後,點下方按鈕標記已存</div>
+          <button class="btn-complete" data-manual-complete="templates">標記為已存</button>
+        </div>
+      </section>
+
+      <!-- FINAL -->
+      <div class="final-note">
+        <div class="final-note__icon">¶</div>
+        <div class="final-note__title">準備好<span>上戰場</span>了。</div>
+        <p class="final-note__body">你現在有了讀錯誤訊息、用 Logger 追資料、寫高品質 prompt、跑 Debug SOP 的能力。下一步:回去看你那份卡住的程式碼,用今天學的工具把它救起來。</p>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'debug-course-v2';
+  const ALL_SECTIONS = ['intro', 'foundation', 'unit1', 'unit2', 'unit3', 'unit4', 'templates'];
+
+  // ===== State =====
+  let state = { quizzes: {}, sections: {} };
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) state = JSON.parse(raw);
+    if (!state.quizzes) state.quizzes = {};
+    if (!state.sections) state.sections = {};
+  } catch (e) {}
+
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  // ===== Feedback helpers =====
+  function showFeedback(quiz, isCorrect, message) {
+    const fb = quiz.querySelector('.quiz__feedback');
+    fb.className = 'quiz__feedback show ' + (isCorrect ? 'quiz__feedback--correct' : 'quiz__feedback--wrong');
+    const label = isCorrect ? '✓ 正確' : '✗ 再想想';
+    fb.innerHTML = '<span class="quiz__feedback-label">' + label + '</span>' + message;
+  }
+
+  function markQuizSolved(quiz) {
+    const id = quiz.dataset.quiz;
+    state.quizzes[id] = true;
+    quiz.classList.add('solved');
+    save();
+    updateZoneProgress(quiz.closest('.quiz-zone'));
+    updateSectionStatus();
+    updateSidebarProgress();
+  }
+
+  // ===== Multiple Choice =====
+  document.querySelectorAll('.quiz[data-type="mc"]').forEach(quiz => {
+    const correct = quiz.dataset.correct;
+    const opts = quiz.querySelectorAll('.quiz__option');
+
+    // Restore state
+    if (state.quizzes[quiz.dataset.quiz]) {
+      quiz.classList.add('solved');
+      opts.forEach(o => {
+        o.classList.add('disabled');
+        if (o.dataset.opt === correct) o.classList.add('correct');
+      });
+    }
+
+    opts.forEach(opt => {
+      opt.addEventListener('click', () => {
+        if (quiz.classList.contains('solved')) return;
+        const picked = opt.dataset.opt;
+        if (picked === correct) {
+          opt.classList.add('correct');
+          opts.forEach(o => o.classList.add('disabled'));
+          showFeedback(quiz, true, '答對了!');
+          markQuizSolved(quiz);
+        } else {
+          opt.classList.add('wrong');
+          showFeedback(quiz, false, '這個不對,看看其他選項。');
+          setTimeout(() => {
+            opt.classList.remove('wrong');
+            opt.querySelector('.quiz__option-letter');
+            const fb = quiz.querySelector('.quiz__feedback');
+            fb.classList.remove('show');
+          }, 2000);
+        }
+      });
+    });
+  });
+
+  // ===== Match =====
+  document.querySelectorAll('.quiz[data-type="match"]').forEach(quiz => {
+    const pairs = JSON.parse(quiz.dataset.pairs || '[]');
+    const pairMap = {};
+    pairs.forEach(([l, r]) => { pairMap[l] = r; pairMap[r] = l; });
+
+    let selectedLeft = null;
+    let selectedRight = null;
+    let matchedCount = 0;
+    let pairNum = 0;
+    const totalPairs = pairs.length;
+
+    const items = quiz.querySelectorAll('.match__item');
+
+    // Restore
+    if (state.quizzes[quiz.dataset.quiz]) {
+      quiz.classList.add('solved');
+      let n = 0;
+      pairs.forEach(([l, r]) => {
+        n++;
+        const li = quiz.querySelector('.match__item[data-id="' + l + '"]');
+        const ri = quiz.querySelector('.match__item[data-id="' + r + '"]');
+        if (li) { li.classList.add('matched'); li.dataset.matchNum = n; }
+        if (ri) { ri.classList.add('matched'); ri.dataset.matchNum = n; }
+      });
+    }
+
+    items.forEach(item => {
+      item.addEventListener('click', () => {
+        if (item.classList.contains('matched') || quiz.classList.contains('solved')) return;
+        const side = item.dataset.side;
+
+        if (side === 'L') {
+          if (selectedLeft) selectedLeft.classList.remove('selected');
+          selectedLeft = item;
+          item.classList.add('selected');
+        } else {
+          if (selectedRight) selectedRight.classList.remove('selected');
+          selectedRight = item;
+          item.classList.add('selected');
+        }
+
+        if (selectedLeft && selectedRight) {
+          const lId = selectedLeft.dataset.id;
+          const rId = selectedRight.dataset.id;
+          if (pairMap[lId] === rId) {
+            pairNum++;
+            selectedLeft.classList.remove('selected');
+            selectedRight.classList.remove('selected');
+            selectedLeft.classList.add('matched');
+            selectedRight.classList.add('matched');
+            selectedLeft.dataset.matchNum = pairNum;
+            selectedRight.dataset.matchNum = pairNum;
+            selectedLeft = null;
+            selectedRight = null;
+            matchedCount++;
+            if (matchedCount === totalPairs) {
+              showFeedback(quiz, true, '全部配對正確!');
+              markQuizSolved(quiz);
+            }
+          } else {
+            const l = selectedLeft;
+            const r = selectedRight;
+            l.classList.remove('selected');
+            r.classList.remove('selected');
+            l.classList.add('flash-wrong');
+            r.classList.add('flash-wrong');
+            setTimeout(() => {
+              l.classList.remove('flash-wrong');
+              r.classList.remove('flash-wrong');
+            }, 500);
+            selectedLeft = null;
+            selectedRight = null;
+            showFeedback(quiz, false, '這個配對不對,再想想。');
+            setTimeout(() => {
+              const fb = quiz.querySelector('.quiz__feedback');
+              fb.classList.remove('show');
+            }, 1800);
+          }
+        }
+      });
+    });
+  });
+
+  // ===== Debug (click the line) =====
+  document.querySelectorAll('.quiz[data-type="debug"]').forEach(quiz => {
+    const correctLine = String(quiz.dataset.correctLine);
+    const lines = quiz.querySelectorAll('.debug-code__line');
+
+    if (state.quizzes[quiz.dataset.quiz]) {
+      quiz.classList.add('solved');
+      const correctEl = quiz.querySelector('.debug-code__line[data-line="' + correctLine + '"]');
+      if (correctEl) correctEl.classList.add('correct-pick', 'solved');
+    }
+
+    lines.forEach(line => {
+      line.addEventListener('click', () => {
+        if (quiz.classList.contains('solved')) return;
+        if (line.dataset.line === correctLine) {
+          line.classList.add('correct-pick', 'solved');
+          showFeedback(quiz, true, '答對了!這就是有問題的行。');
+          markQuizSolved(quiz);
+        } else {
+          line.classList.add('wrong-pick');
+          showFeedback(quiz, false, '這行沒問題,再找找。');
+          setTimeout(() => {
+            line.classList.remove('wrong-pick');
+            const fb = quiz.querySelector('.quiz__feedback');
+            fb.classList.remove('show');
+          }, 1500);
+        }
+      });
+    });
+  });
+
+  // ===== Practical (self-check) =====
+  document.querySelectorAll('.quiz[data-type="practical"]').forEach(quiz => {
+    if (state.quizzes[quiz.dataset.quiz]) {
+      quiz.classList.add('solved');
+      const ans = quiz.querySelector('.quiz__answer');
+      if (ans) ans.classList.add('show');
+    }
+
+    const revealBtn = quiz.querySelector('[data-action="reveal"]');
+    if (revealBtn) {
+      revealBtn.addEventListener('click', () => {
+        const ans = quiz.querySelector('.quiz__answer');
+        if (ans) ans.classList.add('show');
+        revealBtn.style.display = 'none';
+      });
+    }
+
+    const correctBtn = quiz.querySelector('[data-action="self-correct"]');
+    if (correctBtn) {
+      correctBtn.addEventListener('click', () => {
+        markQuizSolved(quiz);
+        showFeedback(quiz, true, '太棒了!繼續下一題。');
+      });
+    }
+
+    const wrongBtn = quiz.querySelector('[data-action="self-wrong"]');
+    if (wrongBtn) {
+      wrongBtn.addEventListener('click', () => {
+        showFeedback(quiz, false, '沒關係,把上面的內容再讀一次,實戰時就會了。');
+      });
+    }
+  });
+
+  // ===== Zone progress =====
+  function updateZoneProgress(zone) {
+    if (!zone) return;
+    const total = parseInt(zone.dataset.required || '0', 10);
+    const quizzes = zone.querySelectorAll('.quiz');
+    let solved = 0;
+    quizzes.forEach(q => { if (state.quizzes[q.dataset.quiz]) solved++; });
+    const label = zone.querySelector('[data-progress-label]');
+    if (label) label.textContent = solved + ' / ' + total + ' 答對';
+  }
+
+  document.querySelectorAll('.quiz-zone').forEach(updateZoneProgress);
+
+  // ===== Section status =====
+  function isSectionPassed(sectionId) {
+    const sec = document.querySelector('.section[data-section="' + sectionId + '"]');
+    if (!sec) return false;
+    const zone = sec.querySelector('.quiz-zone');
+    if (!zone) {
+      return !!state.sections[sectionId];
+    }
+    const required = parseInt(zone.dataset.required || '0', 10);
+    const quizzes = zone.querySelectorAll('.quiz');
+    let solved = 0;
+    quizzes.forEach(q => { if (state.quizzes[q.dataset.quiz]) solved++; });
+    return solved >= required;
+  }
+
+  function updateSectionStatus() {
+    ALL_SECTIONS.forEach(sid => {
+      const passed = isSectionPassed(sid);
+      const completeEl = document.querySelector('[data-complete-zone="' + sid + '"]');
+      if (completeEl) {
+        if (completeEl.dataset.manual === 'true') {
+          if (state.sections[sid]) {
+            completeEl.classList.add('passed');
+            completeEl.querySelector('.section__complete-status').textContent = '✓ 已完成';
+            completeEl.querySelector('.section__complete-msg').textContent = '已標記為已存,以後隨時回來查。';
+            const btn = completeEl.querySelector('[data-manual-complete]');
+            if (btn) { btn.classList.add('completed'); btn.textContent = '已標記 ✓'; }
+          }
+        } else {
+          if (passed) {
+            completeEl.classList.add('passed');
+            completeEl.querySelector('.section__complete-status').textContent = '✓ 本章通過';
+            completeEl.querySelector('.section__complete-msg').textContent = '太棒了!你已經掌握這一章的內容。';
+          } else {
+            completeEl.classList.remove('passed');
+          }
+        }
+      }
+
+      const tocLink = document.querySelector('.toc__link[data-section="' + sid + '"]');
+      if (tocLink) {
+        const done = passed || (completeEl && completeEl.dataset.manual === 'true' && state.sections[sid]);
+        tocLink.classList.toggle('completed', !!done);
+      }
+    });
+  }
+
+  // ===== Manual complete (templates) =====
+  document.querySelectorAll('[data-manual-complete]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sid = btn.dataset.manualComplete;
+      state.sections[sid] = true;
+      save();
+      updateSectionStatus();
+      updateSidebarProgress();
+    });
+  });
+
+  // ===== Sidebar progress =====
+  function updateSidebarProgress() {
+    let done = 0;
+    ALL_SECTIONS.forEach(sid => {
+      const completeEl = document.querySelector('[data-complete-zone="' + sid + '"]');
+      const isManual = completeEl && completeEl.dataset.manual === 'true';
+      if (isManual) {
+        if (state.sections[sid]) done++;
+      } else {
+        if (isSectionPassed(sid)) done++;
+      }
+    });
+    const total = ALL_SECTIONS.length;
+    const pct = Math.round((done / total) * 100);
+    document.getElementById('topProgress').style.width = pct + '%';
+    document.getElementById('sideProgress').style.width = pct + '%';
+    document.getElementById('completedCount').textContent = done;
+    document.getElementById('pctLabel').textContent = pct + '%';
+  }
+
+  // ===== Copy buttons =====
+  document.querySelectorAll('.btn-copy').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tid = btn.dataset.copyTarget;
+      const tgt = document.getElementById(tid);
+      if (!tgt) return;
+      const text = tgt.innerText;
+      const original = btn.textContent;
+      const done = () => {
+        btn.classList.add('copied');
+        btn.textContent = '已複製 ✓';
+        setTimeout(() => { btn.classList.remove('copied'); btn.textContent = original; }, 1800);
+      };
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(done, () => {
+          const ta = document.createElement('textarea');
+          ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+          document.body.appendChild(ta); ta.select();
+          try { document.execCommand('copy'); } catch (e) {}
+          document.body.removeChild(ta);
+          done();
+        });
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta);
+        done();
+      }
+    });
+  });
+
+  // ===== Reset =====
+  document.getElementById('btnReset').addEventListener('click', () => {
+    if (confirm('確定要重設所有進度與測驗答案嗎?此動作無法復原。')) {
+      state = { quizzes: {}, sections: {} };
+      save();
+      location.reload();
+    }
+  });
+
+  // ===== Mobile menu =====
+  const menuBtn = document.getElementById('menuBtn');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  menuBtn.addEventListener('click', () => {
+    sidebar.classList.add('open');
+    overlay.classList.add('active');
+  });
+  overlay.addEventListener('click', () => {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+  });
+  document.querySelectorAll('.toc__link').forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 960) {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+      }
+    });
+  });
+
+  // ===== Active section on scroll =====
+  const sections = ALL_SECTIONS.map(s => document.getElementById('sec-' + s)).filter(Boolean);
+  const tocLinks = document.querySelectorAll('.toc__link');
+  function updateActive() {
+    const offset = 120;
+    let current = sections[0]?.dataset.section;
+    sections.forEach(sec => {
+      const rect = sec.getBoundingClientRect();
+      if (rect.top - offset <= 0) current = sec.dataset.section;
+    });
+    tocLinks.forEach(link => link.classList.toggle('active', link.dataset.section === current));
+  }
+  let scrollTimer;
+  window.addEventListener('scroll', () => {
+    if (scrollTimer) cancelAnimationFrame(scrollTimer);
+    scrollTimer = requestAnimationFrame(updateActive);
+  });
+
+  // ===== Init =====
+  updateSectionStatus();
+  updateSidebarProgress();
+  updateActive();
+})();
+</script>
+
+</body>
+</html>
